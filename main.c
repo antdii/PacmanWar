@@ -1372,7 +1372,7 @@ int pacWarGame(SDL_Surface *screen, char *world_layout_file, char *world_graphic
                 }
                 else
                 {
-                    fprintf(stderr, "Info: Killed by the enemy.\n");
+                    fprintf(stderr, "Info: Morto pelo inimigo.\n");
                     done_status = pacWarGame_OK;
                 }
             }
@@ -1385,7 +1385,7 @@ int pacWarGame(SDL_Surface *screen, char *world_layout_file, char *world_graphic
             tocaSons(chomp);
             if (all_pellets_consumed)
             {
-                fprintf(stderr, "Info: All pellets consumed.\n");
+                fprintf(stderr, "Informação: Todos as bolas consumidos.\n");
                 *score += pacWar_SCORE_FINISH; /* Pontuação extra para consumir todos.. */
                 done_status = pacWarGame_OK;
             }
