@@ -1,3 +1,12 @@
+/*******************************************************************
+* Projeto Pac Man Wars Linguagem C - LAboratorio de Programacao ll *
+* Bibliotecas ultilizadas SDL e SDL_mixer                          *
+* Autores : Wanderson Luan e Antonio Dionisio                      *
+* Compilador CodeBlocks + mingw + sdl _ sdl_mix                    *
+********************************************************************/
+
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -26,7 +35,7 @@
 
 #define pacWar_SCORE_PELLET 2
 #define pacWar_SCORE_FINISH 100
-#define pacWar_SCORE_ENEMY -25 /* Penalidade por matar inimigos*/
+#define pacWar_SCORE_ENEMY -25 /* Penalidade por matar enemys*/
 
 #define pacWar_WORLD_AIR ' '
 #define pacWar_WORLD_WALL '#'
@@ -67,19 +76,19 @@ typedef struct pacWar_pellet_s { /** bolas **/
 
 /* Protótipos*/
 int pacWarGame(SDL_Surface *screen, char *world_layout_file,char *world_graphic_file, int enemy_speed, int *score);
-int iniSom(Mix_Music **music, Mix_Chunk **chomp);
-void tocaMusica(Mix_Music *m);
-void tocaSons(Mix_Chunk *s);
+int iniSom(Mix_Music **, Mix_Chunk **, Mix_Chunk **);
+void tocaMusica(Mix_Music *);
+void tocaSons(Mix_Chunk *);
 int pacWar_load_world(char *filename, char *world);
 int pacWar_locate_player(char *world, int *x, int *y);
 int pacWar_locate_enemy(char *world, int *x, int *y, int n);
 void pacWar_init_character(pacWar_character_t *c, int x, int y);
 void pacWar_init_pellets(char *world, pacWar_pellet_t *p, int *total);
-void pacWar_draw_world_basic(SDL_Surface *s, char *world);
-void pacWar_draw_world_bitmap(SDL_Surface *s, SDL_Surface *ws);
-void pacWar_draw_player(pacWar_character_t *p,SDL_Surface *s, SDL_Surface *ps, int boosted);
-void pacWar_draw_enemy(pacWar_character_t *e, SDL_Surface *s, SDL_Surface *es, int texture, int boosted);
-void pacWar_draw_pellets(SDL_Surface *s, pacWar_pellet_t *p, int total);
+void pacWarDesenhoworld_basic(SDL_Surface *s, char *world);
+void pacWarDesenhoworld_bitmap(SDL_Surface *s, SDL_Surface *ws);
+void pacWarDesenhoplayer(pacWar_character_t *p,SDL_Surface *s, SDL_Surface *ps, int boosted);
+void pacWarDesenhoenemy(pacWar_character_t *e, SDL_Surface *s, SDL_Surface *es, int texture, int boosted);
+void pacWarDesenhopellets(SDL_Surface *s, pacWar_pellet_t *p, int total);
 int pacWar_world_collision(pacWar_character_t *c, char *world);
 int pacWar_character_collision(pacWar_character_t *c1,pacWar_character_t *c2);
 int pacWar_pellets_consumed(pacWar_pellet_t *p, int total);
@@ -87,7 +96,7 @@ int pacWar_pellet_collision(pacWar_character_t *c, pacWar_pellet_t *p,int total,
 void pacWar_enemy_direction_player(pacWar_character_t *e,pacWar_character_t *p);
 int pacWar_enemy_direction_opening(pacWar_character_t *e, char *world);
 int pacWarGame(SDL_Surface *screen, char *world_layout_file, char *world_graphic_file, int enemy_speed, int *score);
-void pacWar_draw_menu_number(SDL_Surface *s, SDL_Surface *ns, int x, int y, int n);
+void pacWarDesenhomenu_number(SDL_Surface *s, SDL_Surface *ns, int x, int y, int n);
 void pacWar_load_highscore(int *table, char *filename);
 void pacWar_save_highscore(int *table, char *filename);
 
@@ -109,13 +118,12 @@ int main(int argc, char *argv[])
     char graphic_file[pacWar_FILENAME_LENGTH];
     int high_score[pacWar_MAX_WORLD];
 
-    /* Use srand () em vez de srandom () */
-    srand((unsigned)time(NULL));
+    //srand((unsigned)time(NULL));
 
-    /* Tente carregar recordes do arquivo. */
+    /** Tente carregar recordes do arquivo. **/
     pacWar_load_highscore(high_score, pacWar_HIGHSCORE_FILE);
 
-    /* Vídeo e inicialização de tela aqui, por causa do menu gráfico. */
+    /** Vídeo e inicialização de tela aqui, por causa do menu gráfico. **/
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) != 0)
     {
         printf(stderr, "Erro: não é possível inicializar o SDL: %s\n", SDL_GetError());
@@ -163,7 +171,7 @@ int main(int argc, char *argv[])
         number_surface = SDL_DisplayFormat(temp_surface);
         if (number_surface == NULL)
         {
-            fprintf(stderr, "Erro: Não é possível converter gráficos inimigos: %s\n",SDL_GetError());
+            fprintf(stderr, "Erro: Não é possível converter gráficos enemys: %s\n",SDL_GetError());
             SDL_FreeSurface(menu_surface);
             return 1;
         }
@@ -171,17 +179,18 @@ int main(int argc, char *argv[])
     }
 
 
-    /* valores padrão. */
-    enemy_speed = 5;
+    /** Inicializando valores na tela Inicial **/
+    enemy_speed = 1;
     world_number = 1;
 
 
-    /* Loop do menu principal. */
+    /** Menu **/
     game_done = 0;
     while (! game_done)
     {
 
-        /* processo para entrada do usuário. */
+
+        /** processo para entrada **/
         if (SDL_PollEvent(&event) == 1) /** SDL_PollEvent ==> Aguarda a definição do usuário: 0 se event for NULL **/
         {
             switch(event.type) /** Acessando um dado do tipo "uint8_t" -- inteiro de 8 bites sem sinal (0 à 255) da biblioteca stdinc.h**/
@@ -216,6 +225,7 @@ int main(int argc, char *argv[])
                             }
                         break;
 
+
                         case SDLK_w:
                             world_number++;
                         if (world_number > pacWar_MAX_WORLD)
@@ -239,11 +249,12 @@ int main(int argc, char *argv[])
         }
 
 
-        /* Desenhe gráficos. */
+
+        /** Desenhe gráficos **/
         SDL_BlitSurface(menu_surface, NULL, screen, NULL);
-        pacWar_draw_menu_number(screen, number_surface, 385, 163, world_number);
-        pacWar_draw_menu_number(screen, number_surface, 385, 211, enemy_speed);
-        pacWar_draw_menu_number(screen, number_surface, 385, 259,
+        //pacWarDesenhomenu_number(screen, number_surface, 385, 163, world_number);
+        pacWarDesenhomenu_number(screen, number_surface, 385, 211, enemy_speed);
+        pacWarDesenhomenu_number(screen, number_surface, 385, 259,
         high_score[world_number - 1]);
 
         SDL_Flip(screen);
@@ -260,11 +271,8 @@ int main(int argc, char *argv[])
     return 0;
 }
 
-
-
-// iniSom(iniciando o som)
-
-int iniSom(Mix_Music **music, Mix_Chunk **chomp)
+/** iniciando o som **/
+int iniSom(Mix_Music **music, Mix_Chunk **comendo, Mix_Chunk **menu)
 {
     if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 1024) < 0)
     {
@@ -273,24 +281,25 @@ int iniSom(Mix_Music **music, Mix_Chunk **chomp)
         return -1;
     }
 
-    // Testando o audio
-
-    if (! (*music = Mix_LoadMUS("music.wav")))
+    if (! (*music = Mix_LoadMUS("musicWars.wav")))
     {
-        fprintf(stderr, "Erro nao foi possivel abrir o audio: %s\n",
-        SDL_GetError());
+        fprintf(stderr, "Erro nao foi possivel abrir o audio: %s\n",SDL_GetError());
         Mix_CloseAudio();
         return -1;
     }
 
-    // testando arquivo de som
-
-    if (! (*chomp = Mix_LoadWAV("chomp.wav")))
+    if (! (*comendo = Mix_LoadWAV("comendo.wav")))
     {
-        fprintf(stderr, "Erro nao foi possivel abrir o audio: %s\n",
-        SDL_GetError());
+        fprintf(stderr, "Erro nao foi possivel abrir o audio: %s\n",SDL_GetError());
         Mix_CloseAudio();
         Mix_FreeMusic(*music);
+        return -1;
+    }
+    if (! (*menu = Mix_LoadWAV("menuWars.wav")))
+    {
+        fprintf(stderr, "Erro nao foi possivel abrir o audio: %s\n",SDL_GetError());
+        Mix_CloseAudio();
+        //Mix_FreeMusic(*music);
         return -1;
     }
 
@@ -303,31 +312,31 @@ int iniSom(Mix_Music **music, Mix_Chunk **chomp)
 void tocaMusica(Mix_Music *m)
 {
     if (Mix_PlayMusic(m, 0) == -1)
-        fprintf(stderr, "Nao e possivel reproduzir o audio %s\n", SDL_GetError());
+        fprintf(stderr, "Não e possivel reproduzir o audio %s\n", SDL_GetError());
 }
 
 
-// tocaSons(ativando audio)
+/** ativa os audios **/
 
-void tocaSons(Mix_Chunk *s)
+void tocaSons(Mix_Chunk *a)
 {
-    /*pare todos os canais para evitar usa-los*/
+    /** pare todos os canais de audio **/
     Mix_HaltChannel(-1);
 
-    if (Mix_PlayChannel(-1, s, 0) == -1)
-        fprintf(stderr, "Aviso :nao e possivel reproduzir o som %s\n", SDL_GetError());
+    if (Mix_PlayChannel(-1, a, 0) == -1)
+        fprintf(stderr, "Aviso :não e possivel reproduzir o som %s\n", SDL_GetError());
 }
 
 
-// pacWar_load_world (escrever dentro do arquivo)
+/** escrever dentro do arquivo **/
 
 int pacWar_load_world(char *filename, char *world)
 {
     int c, w, h;
-    FILE *fh;
+    FILE *arq;
 
-    fh = fopen(filename, "r");
-    if (fh == NULL)
+    arq = fopen(filename, "r");
+    if (arq == NULL)
     {
         fprintf(stderr, "Erro nao e possivel abrir o'%s' para leitura \n", filename);
         return -1;
@@ -335,14 +344,14 @@ int pacWar_load_world(char *filename, char *world)
 
     w = 0;
     h = 0;
-    while ((c = fgetc(fh)) != EOF)
+    while ((c = fgetc(arq)) != EOF)
     {
         if (c == '\n' || w >= pacWar_WORLD_X_SIZE)
         {
             w = 0;
             h++;
             if (h >= pacWar_WORLD_Y_SIZE)
-                return 0; /* limite alcanssado, Resgate */
+                return 0; /** limite alcanssado **/
         }
         else
         {
@@ -351,12 +360,12 @@ int pacWar_load_world(char *filename, char *world)
         }
     }
 
-    fclose(fh);
+    fclose(arq);
     return 0;
 }
 
 
-// pacWar_locate_player(localizando jogador)
+/** localizando jogador **/
 
 int pacWar_locate_player(char *world, int *x, int *y)
 {
@@ -377,7 +386,7 @@ int pacWar_locate_player(char *world, int *x, int *y)
 }
 
 
-// pacWar_locate_enemy (localizando o inimigo)
+/** localizando os fantasmas **/
 
 int pacWar_locate_enemy(char *world, int *x, int *y, int n)
 {
@@ -416,7 +425,7 @@ void pacWar_init_character(pacWar_character_t *c, int x, int y)
 }
 
 
-//pacWar_init_pellets(bolinha de inicializacao)
+/** inicializando as bolinhas **/
 
 void pacWar_init_pellets(char *world, pacWar_pellet_t *p, int *total)
 {
@@ -446,9 +455,9 @@ void pacWar_init_pellets(char *world, pacWar_pellet_t *p, int *total)
     *total = n;
 }
 
-// pacWar_draw_world_basic(criando o mapa basico)
+// pacWarDesenhoworld_basic(criando o mapa basico)
 
-void pacWar_draw_world_basic(SDL_Surface *s, char *world)
+void pacWarDesenhoworld_basic(SDL_Surface *s, char *world)
 {
     int i, j;
     SDL_Rect r;
@@ -476,16 +485,16 @@ void pacWar_draw_world_basic(SDL_Surface *s, char *world)
 }
 
 
-//pacWar_draw_world_bitmap(criando mapa do bitmap)
+//pacWarDesenhoworld_bitmap(criando mapa do bitmap)
 
-void pacWar_draw_world_bitmap(SDL_Surface *s, SDL_Surface *ws)
+void pacWarDesenhoworld_bitmap(SDL_Surface *s, SDL_Surface *ws)
 {
     SDL_BlitSurface(ws, NULL, s, NULL);
 }
 
-// pacWar_draw_player(jogador de empate)
+// pacWarDesenhoplayer(jogador de empate)
 
-void pacWar_draw_player(pacWar_character_t *p,SDL_Surface *s, SDL_Surface *ps, int boosted)
+void pacWarDesenhoplayer(pacWar_character_t *p,SDL_Surface *s, SDL_Surface *ps, int boosted)
 {
     SDL_Rect src, dst;
     int direction;
@@ -556,9 +565,9 @@ void pacWar_draw_player(pacWar_character_t *p,SDL_Surface *s, SDL_Surface *ps, i
     SDL_BlitSurface(ps, &src, s, &dst);
 }
 
-// pacWar_draw_enemy( pac man estatico para atrair inimigo)
+// pacWarDesenhoenemy( pac man estatico para atrair enemy)
 
-void pacWar_draw_enemy(pacWar_character_t *e, SDL_Surface *s, SDL_Surface *es, int texture, int boosted)
+void pacWarDesenhoenemy(pacWar_character_t *e, SDL_Surface *s, SDL_Surface *es, int texture, int boosted)
 {
     SDL_Rect src, dst;
 
@@ -603,9 +612,9 @@ void pacWar_draw_enemy(pacWar_character_t *e, SDL_Surface *s, SDL_Surface *es, i
 }
 
 
-//pacWar_draw_pellets(bolas de tracao estatica)
+//pacWarDesenhopellets(bolas de tracao estatica)
 
-void pacWar_draw_pellets(SDL_Surface *s, pacWar_pellet_t *p, int total)
+void pacWarDesenhopellets(SDL_Surface *s, pacWar_pellet_t *p, int total)
 {
     int i, size, color;
     SDL_Rect r;
@@ -782,7 +791,7 @@ int pacWar_pellet_collision(pacWar_character_t *c, pacWar_pellet_t *p,int total,
 }
 
 
-// pacWar_enemy_direction_player (direcao do jogador inimigo)
+// pacWar_enemy_direction_player (direcao do jogador enemy)
 
 void pacWar_enemy_direction_player(pacWar_character_t *e,pacWar_character_t *p)
 {
@@ -806,7 +815,7 @@ void pacWar_enemy_direction_player(pacWar_character_t *e,pacWar_character_t *p)
 
 
 /* Encontre a abertura onde a direção oposta é uma parede.*/
-// pacWar_enemy_direction_opening(abertura de direcao do inimigo)
+// pacWar_enemy_direction_opening(abertura de direcao do enemy)
 
 int pacWar_enemy_direction_opening(pacWar_character_t *e, char *world)
 {
@@ -842,8 +851,8 @@ int pacWar_enemy_direction_opening(pacWar_character_t *e, char *world)
 }
 
 
-// pacWar_draw_menu_number( desenhando o numero do menu)
-void pacWar_draw_menu_number(SDL_Surface *s, SDL_Surface *ns, int x, int y, int n)
+// pacWarDesenhomenu_number( desenhando o numero do menu)
+void pacWarDesenhomenu_number(SDL_Surface *s, SDL_Surface *ns, int x, int y, int n)
 {
     int i, pow, digits;
     SDL_Rect src, dst;
@@ -960,7 +969,8 @@ int pacWarGame(SDL_Surface *screen, char *world_layout_file, char *world_graphic
     SDL_Event event;
     SDL_Surface *player_surface, *enemy_surface, *world_surface, *temp_surface;
     Mix_Music *music;
-    Mix_Chunk *chomp;
+    Mix_Chunk *comendo;
+    Mix_Chunk *menu;
     char world[pacWar_WORLD_X_SIZE * pacWar_WORLD_Y_SIZE] = {pacWar_WORLD_AIR};
     pacWar_character_t player, enemy[pacWar_ENEMY_COUNT];
     pacWar_pellet_t pellet[pacWar_MAX_PELLET];
@@ -1015,7 +1025,7 @@ int pacWarGame(SDL_Surface *screen, char *world_layout_file, char *world_graphic
     temp_surface = SDL_LoadBMP("enemy.bmp");
     if (temp_surface == NULL)
     {
-        fprintf(stderr, "Erro: Não é possível carregar gráficos inimigos: %s\n",SDL_GetError());
+        fprintf(stderr, "Erro: Não é possível carregar gráficos enemys: %s\n",SDL_GetError());
         SDL_FreeSurface(player_surface);
         return pacWarGame_FAIL;
     }
@@ -1024,7 +1034,7 @@ int pacWarGame(SDL_Surface *screen, char *world_layout_file, char *world_graphic
         enemy_surface = SDL_DisplayFormat(temp_surface);
         if (enemy_surface == NULL)
         {
-            fprintf(stderr, "Erro: Não é possível converter gráficos inimigos:%s\n",SDL_GetError());
+            fprintf(stderr, "Erro: Não é possível converter gráficos enemys:%s\n",SDL_GetError());
             SDL_FreeSurface(player_surface);
             return pacWarGame_FAIL;
         }
@@ -1050,7 +1060,7 @@ int pacWarGame(SDL_Surface *screen, char *world_layout_file, char *world_graphic
     }
 
     /** Inicialize o som e umamusica. **/
-    if (iniSom(&music, &chomp) != 0)
+    if (iniSom(&music, &comendo, &menu) != 0)
     {
         SDL_FreeSurface(player_surface);
         SDL_FreeSurface(enemy_surface);
@@ -1221,7 +1231,7 @@ int pacWarGame(SDL_Surface *screen, char *world_layout_file, char *world_graphic
         }
 
 
-        /* Mova os inimigos e verifique suas colisões no mapa. */
+        /* Mova os enemys e verifique suas colisões no mapa. */
         for (i = 0; i < pacWar_ENEMY_COUNT; i++)
         {
             if (enemy[i].killed)
@@ -1248,7 +1258,7 @@ int pacWarGame(SDL_Surface *screen, char *world_layout_file, char *world_graphic
                         enemy[i].y++;
                         collision = 1;
                     }
-                    /*Volte se colidir com outro inimigo. */
+                    /*Volte se colidir com outro enemy. */
                     for (j = 0; j < pacWar_ENEMY_COUNT; j++)
                     {
                         if (enemy[j].killed)
@@ -1357,7 +1367,7 @@ int pacWarGame(SDL_Surface *screen, char *world_layout_file, char *world_graphic
         }
 
 
-        /* Verifique as colisões entre o jogador e os inimigos. */
+        /** Verifique as colisões entre o jogador e os enemys. **/
         for (i = 0; i < pacWar_ENEMY_COUNT; i++)
         {
             if (enemy[i].killed)
@@ -1367,7 +1377,7 @@ int pacWarGame(SDL_Surface *screen, char *world_layout_file, char *world_graphic
                 if (booster_time > 0)
                 {
                     enemy[i].killed = 1;
-                    tocaSons(chomp);
+                    tocaSons(comendo);
                     *score += pacWar_SCORE_ENEMY;
                 }
                 else
@@ -1382,10 +1392,10 @@ int pacWarGame(SDL_Surface *screen, char *world_layout_file, char *world_graphic
         /* Verifique as colisões e saia se a última pastilha tiver sido consumida. */
         if (pacWar_pellet_collision(&player, pellet, total_pellets,&all_pellets_consumed, &boost_effect) == 1)
         {
-            tocaSons(chomp);
+            tocaSons(comendo);
             if (all_pellets_consumed)
             {
-                fprintf(stderr, "Info: All pellets consumed.\n");
+                fprintf(stderr, "Todas a bolas comidas.\n");
                 *score += pacWar_SCORE_FINISH; /* Pontuação extra para consumir todos.. */
                 done_status = pacWarGame_OK;
             }
@@ -1396,21 +1406,21 @@ int pacWarGame(SDL_Surface *screen, char *world_layout_file, char *world_graphic
             booster_time--;
 
 
-        /* Desenhe gráficos e relaxe a execução. */
+        /* Desenhe gráficos. */
         if (world_surface != NULL)
-            pacWar_draw_world_bitmap(screen, world_surface);
+            pacWarDesenhoworld_bitmap(screen, world_surface);
         else
-            pacWar_draw_world_basic(screen, world);
+            pacWarDesenhoworld_basic(screen, world);
 
-        pacWar_draw_pellets(screen, pellet, total_pellets);
+        pacWarDesenhopellets(screen, pellet, total_pellets);
 
-        pacWar_draw_player(&player, screen, player_surface, booster_time);
+        pacWarDesenhoplayer(&player, screen, player_surface, booster_time);
 
         for (i = 0; i < pacWar_ENEMY_COUNT; i++)
         {
             if (enemy[i].killed)
                 continue;
-            pacWar_draw_enemy(&enemy[i], screen, enemy_surface, i, booster_time);
+            pacWarDesenhoenemy(&enemy[i], screen, enemy_surface, i, booster_time);
         }
 
         SDL_Flip(screen);
@@ -1425,7 +1435,8 @@ int pacWarGame(SDL_Surface *screen, char *world_layout_file, char *world_graphic
         SDL_FreeSurface(world_surface);
     Mix_CloseAudio();
     Mix_FreeMusic(music);
-    Mix_FreeChunk(chomp);
+    Mix_FreeChunk(comendo);
+    Mix_FreeChunk(menu);
 
     /* Atualizar pontuação. */
     *score += pacWar_pellets_consumed(pellet, total_pellets) *pacWar_SCORE_PELLET;
