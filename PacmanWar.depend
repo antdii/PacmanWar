@@ -20,3 +20,10 @@
 	<SDL/SDL_main.h>
 	<time.h>
 
+1543200220 source:d:\pacmanwar\main.c
+	<stdio.h>
+	<stdlib.h>
+	<time.h>
+	<SDL/SDL.h>
+	<SDL/SDL_mixer.h>
+
