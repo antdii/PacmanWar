@@ -1,0 +1,22 @@
+# depslib dependency file v1.0
+1543098625 source:c:\users\ant_d\onedrive\diversos1\sistemas de informação\laboratório de programação 2\pacmanwar\gameloop.c
+	"sdlman.h"
+	<SDL/SDL_mixer.h>
+
+1543098625 c:\users\ant_d\onedrive\diversos1\sistemas de informação\laboratório de programação 2\pacmanwar\sdlman.h
+	<stdio.h>
+	<stdlib.h>
+	<SDL/SDL.h>
+
+1543126487 source:c:\users\ant_d\onedrive\diversos1\sistemas de informação\laboratório de programação 2\pacmanwar\main.c
+	<stdio.h>
+	<stdlib.h>
+	<time.h>
+	<SDL/SDL.h>
+	<SDL/SDL_mixer.h>
+
+1543109593 source:c:\users\ant_d\onedrive\diversos1\sistemas de informação\laboratório de programação 2\pacmanwar\menu.c
+	"sdlman.h"
+	<SDL/SDL_main.h>
+	<time.h>
+
