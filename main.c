@@ -5,6 +5,7 @@
 * Compilador CodeBlocks + mingw + sdl _ sdl_mix                    *
 ********************************************************************/
 
+/***Bibliotecas básicas***/
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -12,90 +13,93 @@
 #include <SDL/SDL.h>
 #include <SDL/SDL_mixer.h> // Sons
 
-/* definicoes */
-#define pacWar_BLOCK_SIZE 32
-#define pacWar_WORLD_X_SIZE 20
-#define pacWar_WORLD_Y_SIZE 15
+/** definicoes **/
+//tamanho do cenário
+#define tamanhoBloco 32
+#define tamanhoEixoX 20
+#define tamanhoEixoY 15
 
-#define pacWarGame_OK 0
-#define pacWarGame_FAIL -1
-#define pacWarGame_QUIT -2
+//funcionamento do jogo
+#define gameOK 0
+#define gameFalhou -1
+#define gameFechar -2
+#define gameVelocidade 20
 
-#define pacWar_GAME_SPEED 20
 
-#define pacWar_MAX_PLAYER_SPEED 5
-#define pacWar_CHARACTER_SIZE 26
-#define pacWar_ENEMY_COUNT 4
-#define pacWar_PELLET_SIZE 4
-#define pacWar_BOOSTER_SIZE 6
-#define pacWar_MAX_PELLET 300 /* 15 x 20 */
-#define pacWar_BOOSTER_TIME 120 /* Em ciclos de loop */
+//características dos personagens
+#define velocidadeMaxJogador 5
+#define tamanhoPac 26
+#define contaFantasmas 4
+#define velocidadeMaxFantasmas 9
 
-#define pacWar_SCORE_PELLET 2
+//gerais
+#define tamanhoPastilha 4
+#define tamanhoPastilhaEnergia 6
+#define numeroMaxPastilhas 300 /* 15 x 20 */
+#define tempoEnergia 120 /** Em ciclos de loop */
+#define pontoPastilha 2
+#define pontoFantasma -25 /** Penalidade por matar fantasmas*/
 
-#define pacWar_SCORE_ENEMY -25 /* Penalidade por matar enemys*/
+//mapa
+#define mapaEspaco ' '
+#define mapaParede '#'
+#define mapaPac 'P'
+#define mapaFantasmas 'E'
+#define mapaPastilha '.'
+#define mapaEnergia '*'
+#define larguraNum 26 /** define a largura dos números utilizados no menu e no game **/
+#define alturaNum 32 /** define a altura dos números utilizados no menu e no game **/
+#define tamanhoNomeArquivo 16
+#define maxPalavrasMapa 5
+#define arquivoRecorde "recorde.dat"
 
-#define pacWar_WORLD_AIR ' '
-#define pacWar_WORLD_WALL '#'
-#define pacWar_WORLD_PLAYER 'P'
-#define pacWar_WORLD_ENEMY 'E'
-#define pacWar_WORLD_PELLET '.'
-#define pacWar_WORLD_BOOSTER '*'
+//direções
+#define direcaoNenhuma 0
+#define direcaoCima 1
+#define direcaoBaixo 2
+#define direcaoEsquerda 3
+#define direcaoDireita 4
 
-#define pacWar_FILENAME_LENGTH 16
-#define pacWar_MAX_ENEMY_SPEED 9
-#define pacWar_MAX_WORLD 5
-#define larguraNum 26 /** determina a altura dos números utilizados no menu e no game **/
-#define alturaNum 32
-
-#define pacWar_HIGHSCORE_FILE "highscore.dat"
-
-#define pacWar_DIRECTION_NONE 0
-#define pacWar_DIRECTION_UP 1
-#define pacWar_DIRECTION_DOWN 2
-#define pacWar_DIRECTION_LEFT 3
-#define pacWar_DIRECTION_RIGHT 4
-
-// struct pacWar_character_s
-typedef struct pacWar_character_s { /** Pac's "fantasias"**/
+/** Pacman "fantasias" **/
+typedef struct personagem {
     int x, y; /* Coordenadas*/
-    int moving_direction, looking_direction;
-    int speed;
-    int draw_count; /** Usado para animacao **/
-    int killed;
-} pacWar_character_t;
+    int direcaoMovimento, direcaoApontada;
+    int velocidade;
+    int contaImagem; /** Usado para animacao **/
+    int morto;
+} pacWarPersonagem;
 
-// struct pacWar_pellet_s
-typedef struct pacWar_pellet_s { /** bolas **/
+/** pastilhas **/
+typedef struct pacWarPastilhas {
     int x, y;
-    int consumed;
-    int boost_effect;
-} pacWar_pellet_t;
+    int consumido;
+    int efeitoEnergia;
+} pacPastilhas;
 
-/* Protótipos*/
-int pacWarGame(SDL_Surface *, char *,char *, int , int *);
-int iniSom(Mix_Music **, Mix_Chunk **, Mix_Chunk **);
-void tocaMusica(Mix_Music *);
-void tocaSons(Mix_Chunk *);
-int pacWarCarregaMapa(char *, char *); /** lê o arquivo layout e verifica as configurações do layout em relação á ' ', '#', '*', '.' **/
+/** Protótipos **/
+int pacWarGame(SDL_Surface *, char *,char *, int , int *); /** função principal que controla o loop do jogo **/
+int iniciaSom(Mix_Music **, Mix_Chunk **, Mix_Chunk **); /** inicializa o som **/
+void tocaMusica(Mix_Music *); /** ativa musicas **/
+void tocaSons(Mix_Chunk *); /** ativando outros sons **/
+int leMapa(char *, char *); /** lê o arquivo layout e verifica as configurações do layout em relação á ' ', '#', '*', '.' **/
 int localizaPac(char *, int *, int *); /** lê o arquivo layout e verifica onde está posicionado o pacman **/
-int localizaFantasmas(char *, int *, int *, int );
-void pacWar_init_character(pacWar_character_t *c, int x, int y);
-void pacWar_init_pellets(char *world, pacWar_pellet_t *p, int *total);
+int localizaFantasmas(char *, int *, int *, int ); /** localizando os fantasmas **/
+void iniciaPac(pacWarPersonagem *, int , int ); /** Inicializa o pacman **/
+void iniciaPastilhas(char *, pacPastilhas *, int *); /** inicializando as pastilhas **/
 //void pacWarDesenhoworld_basic(SDL_Surface *s, char *world);
-void desenhaMapa(SDL_Surface *, SDL_Surface *);
-void desenhaPac(pacWar_character_t *,SDL_Surface *, SDL_Surface *, int );
-void desenhaFantasmas(pacWar_character_t *, SDL_Surface *, SDL_Surface *, int , int );
-void desenhaPastilhas(SDL_Surface *, pacWar_pellet_t *, int );
-int colisaoMapa(pacWar_character_t *, char *);
-int pacWar_character_collision(pacWar_character_t *c1,pacWar_character_t *c2);
-int pastilhasConsumidas(pacWar_pellet_t *, int );
-int comendoPastilhas(pacWar_character_t *, pacWar_pellet_t *,int , int *, int *);
-void pacWar_enemy_direction_player(pacWar_character_t *e,pacWar_character_t *p);
-int pacWar_enemy_direction_opening(pacWar_character_t *e, char *world);
-void desenhaNum(SDL_Surface *, SDL_Surface *, int , int , int );
-void pacWar_load_highscore(int *table, char *filename);
-void pacWar_save_highscore(int *table, char *filename);
+void desenhaMapa(SDL_Surface *, SDL_Surface *); /** carrega mapa a partir do bitmap **/
+void desenhaPac(pacWarPersonagem *,SDL_Surface *, SDL_Surface *, int ); /** desenha o jogador **/
+void desenhaFantasmas(pacWarPersonagem *, SDL_Surface *, SDL_Surface *, int , int ); /** desenha fantasmas **/
+void desenhaPastilhas(SDL_Surface *, pacPastilhas *, int ); /** desenha as pastilhas **/
+int colisaoMapa(pacWarPersonagem *, char *); /** Colisao NO MAPA */
+int colisaoPac(pacWarPersonagem *,pacWarPersonagem *); /** colisão do Pac **/
+int pastilhasConsumidas(pacPastilhas *, int ); /** pastilhas consumidas **/
+int comendoPastilhas(pacWarPersonagem *, pacPastilhas *,int , int *, int *); /** colisao das pastilhas **/
+void direcaoFantasmas(pacWarPersonagem *,pacWarPersonagem *); /** direcão dos Fantasmas **/
+int direcaoFantasmasAbertura(pacWarPersonagem *, char *); /** direção dos fantasmas -- aberturas**/
+void desenhaNum(SDL_Surface *, SDL_Surface *, int , int , int ); /** serve para escrever a velocidade dos fantasmas **/
+void leRecorde(int *, char *); /** le recorde em um arquivo **/
+void salvaRecorde(int *, char *); /**salva recorde em um arquivo **/
 
 
 
@@ -110,15 +114,15 @@ int main(int argc, char *argv[])
      várias formas -, ou seja, é útil para criar um "tipo variável".**/
 
     SDL_Surface *screen, *menu_surface, *number_surface, *temp_surface;
-    int game_done, game_result, world_number, enemy_speed, game_score;
-    char layout_file[pacWar_FILENAME_LENGTH];
-    char graphic_file[pacWar_FILENAME_LENGTH];
-    int high_score[pacWar_MAX_WORLD];
+    int game_done, game_result, world_number, enemy_velocidade, game_score;
+    char layout_file[tamanhoNomeArquivo];
+    char graphic_file[tamanhoNomeArquivo];
+    int high_score[maxPalavrasMapa];
 
     srand((unsigned)time(NULL));
 
     /** Tente carregar recordes do arquivo. **/
-    pacWar_load_highscore(high_score, pacWar_HIGHSCORE_FILE);
+    leRecorde(high_score, arquivoRecorde);
 
     /** Vídeo e inicialização de tela aqui, por causa do menu gráfico. **/
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) != 0)
@@ -126,8 +130,8 @@ int main(int argc, char *argv[])
         printf(stderr, "Erro: não é possível inicializar o SDL: %s\n", SDL_GetError());
         return 1;
     }
-    screen = SDL_SetVideoMode(pacWar_WORLD_X_SIZE * 40/*pacWar_BLOCK_SIZE*/,
-                              pacWar_WORLD_Y_SIZE *40 /*pacWar_BLOCK_SIZE*/, 24, SDL_DOUBLEBUF/*SDL_FULLSCREEN*/);
+    screen = SDL_SetVideoMode(tamanhoEixoX * 40/*tamanhoBloco*/,
+                              tamanhoEixoY *40 /*tamanhoBloco*/, 24, SDL_DOUBLEBUF/*SDL_FULLSCREEN*/);
                               /** controla a janela aberta **/
 
     if (screen == NULL)
@@ -179,7 +183,7 @@ int main(int argc, char *argv[])
 
 
     /** Inicializando valores na tela de Menu **/
-    enemy_speed = 1;
+    enemy_velocidade = 1;
     world_number = 1;
 
 
@@ -207,12 +211,12 @@ int main(int argc, char *argv[])
 
                         case SDLK_RETURN: /** tecla ENTER com mesmo efeito de ESPAÇO (abaixo) -- retorna 13 para event.key em SDL_Event **/
                         case SDLK_SPACE: /** tecla ESPAÇO para "rodar" o jogo -- retorna 32 para event.key em SDL_Event **/
-                            snprintf(layout_file, pacWar_FILENAME_LENGTH, "world.layout",world_number);
-                            snprintf(graphic_file, pacWar_FILENAME_LENGTH, "world.bmp",world_number);
+                            snprintf(layout_file, tamanhoNomeArquivo, "world.layout",world_number);
+                            snprintf(graphic_file, tamanhoNomeArquivo, "world.bmp",world_number);
 
-                            game_result = pacWarGame(screen, layout_file, graphic_file,enemy_speed, &game_score);
+                            game_result = pacWarGame(screen, layout_file, graphic_file,enemy_velocidade, &game_score);
 
-                            if (game_result == pacWarGame_OK)
+                            if (game_result == gameOK)
                             {
                                 /* Atualizar pontuação*/
                                 if (game_score > high_score[world_number - 1])
@@ -227,14 +231,14 @@ int main(int argc, char *argv[])
 
                         case SDLK_w:
                             world_number++;
-                        if (world_number > pacWar_MAX_WORLD)
+                        if (world_number > maxPalavrasMapa)
                             world_number = 1;
                         break;
 
                         case SDLK_s:
-                            enemy_speed++;
-                            if (enemy_speed > pacWar_MAX_ENEMY_SPEED)
-                                enemy_speed = 1;
+                            enemy_velocidade++;
+                            if (enemy_velocidade > velocidadeMaxFantasmas)
+                                enemy_velocidade = 1;
                         break;
 
                         default:
@@ -252,11 +256,11 @@ int main(int argc, char *argv[])
         /** Desenhe gráficos **/
         SDL_BlitSurface(menu_surface, NULL, screen, NULL);
         //pacWarDesenhomenu_number(screen, number_surface, 385, 163, world_number);
-        desenhaNum(screen, number_surface, 385, 211, enemy_speed); /** serve para escrever a velocidade dos fantasmas **/
+        desenhaNum(screen, number_surface, 385, 211, enemy_velocidade); /** serve para escrever a velocidade dos fantasmas **/
         desenhaNum(screen, number_surface, 385, 259,high_score[world_number - 1]); /** serve para escrever a pontuação máxima **/
 
         SDL_Flip(screen);
-        SDL_Delay(pacWar_GAME_SPEED);
+        SDL_Delay(gameVelocidade);
     }
 
 
@@ -264,71 +268,66 @@ int main(int argc, char *argv[])
     SDL_FreeSurface(menu_surface);
     SDL_FreeSurface(number_surface);
     SDL_FreeSurface(screen);
-    pacWar_save_highscore(high_score, pacWar_HIGHSCORE_FILE);
+    salvaRecorde(high_score, arquivoRecorde);
 
     return 0;
 }
 
 /** iniciando o som **/
-int iniSom(Mix_Music **music, Mix_Chunk **comendo, Mix_Chunk **menu)
+int iniciaSom(Mix_Music **music, Mix_Chunk **comendo, Mix_Chunk **menu)
 {
     if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 1024) < 0)
     {
-        fprintf(stderr, "Erro nao e possivel abrir o audio %s\n", SDL_GetError());
+        fprintf(stderr, "Não foi possivel abrir o áudio %s\n", SDL_GetError());
         Mix_CloseAudio();
         return -1;
     }
 
     if (! (*music = Mix_LoadMUS("music.wav"))) //ou use musicWars.wav
     {
-        fprintf(stderr, "Erro nao foi possivel abrir o audio: %s\n",SDL_GetError());
+        fprintf(stderr, "Não foi possível abrir o áudio: %s\n",SDL_GetError());
         Mix_CloseAudio();
         return -1;
     }
 
     if (! (*comendo = Mix_LoadWAV("comendo.wav")))
     {
-        fprintf(stderr, "Erro nao foi possivel abrir o audio: %s\n",SDL_GetError());
+        fprintf(stderr, "Não foi possível abrir o áudio: %s\n",SDL_GetError());
         Mix_CloseAudio();
         Mix_FreeMusic(*music);
         return -1;
     }
     if (! (*menu = Mix_LoadWAV("menuWars.wav")))
     {
-        fprintf(stderr, "Erro nao foi possivel abrir o audio: %s\n",SDL_GetError());
+        fprintf(stderr, "Não foi possível abrir o áudio: %s\n",SDL_GetError());
         Mix_CloseAudio();
         //Mix_FreeMusic(*music);
         return -1;
     }
-
     return 0;
 }
 
-
-// tocaMusica (ativando musica)
-
+/** ativando musica **/
 void tocaMusica(Mix_Music *m)
 {
     if (Mix_PlayMusic(m, 0) == -1)
-        fprintf(stderr, "Não e possivel reproduzir o audio %s\n", SDL_GetError());
+        fprintf(stderr, "Não é possivel reproduzir o audio %s\n", SDL_GetError());
 }
 
 
 /** ativa os audios **/
-
 void tocaSons(Mix_Chunk *a)
 {
     /** pare todos os canais de audio **/
     Mix_HaltChannel(-1);
 
     if (Mix_PlayChannel(-1, a, 0) == -1)
-        fprintf(stderr, "Aviso :não e possivel reproduzir o som %s\n", SDL_GetError());
+        fprintf(stderr, "Não é possível reproduzir o áudio %s\n", SDL_GetError());
 }
 
 
-/** escrever dentro do arquivo do mapa**/
-
-int pacWarCarregaMapa(char *arqLayout, char *world)
+/** le o arquivo do mapa**/
+int leMapa(char *arqLayout, char *world)
 {
     int c, w, h;
     FILE *arq;
@@ -336,7 +335,7 @@ int pacWarCarregaMapa(char *arqLayout, char *world)
     arq = fopen(arqLayout, "r");
     if (arq == NULL)
     {
-        fprintf(stderr, "Erro nao e possivel abrir o'%s' para leitura \n", arqLayout);
+        fprintf(stderr, "Não é possivel abrir o'%s' para leitura \n", arqLayout);
         return -1;
     }
 
@@ -344,16 +343,16 @@ int pacWarCarregaMapa(char *arqLayout, char *world)
     h = 2; // controle da posição da matriz
     while ((c = fgetc(arq)) != EOF)
     {
-        if (c == '\n' || w >= pacWar_WORLD_X_SIZE)
+        if (c == '\n' || w >= tamanhoEixoX)
         {
             w = 0;
             h++;
-            if (h >= pacWar_WORLD_Y_SIZE+2)
+            if (h >= tamanhoEixoY+2)
                 return 0; /** limites do mapa **/
         }
         else
         {
-            world[(h * pacWar_WORLD_X_SIZE) + w] = c;
+            world[(h * tamanhoEixoX) + w] = c;
             w++;
         }
     }
@@ -368,14 +367,14 @@ int pacWarCarregaMapa(char *arqLayout, char *world)
 int localizaPac(char *world, int *x, int *y)
 {
     int i, j;
-    for (i = 0; i < pacWar_WORLD_Y_SIZE; i++)
+    for (i = 0; i < tamanhoEixoY; i++)
     {
-        for (j = 0; j < pacWar_WORLD_X_SIZE; j++)
+        for (j = 0; j < tamanhoEixoX; j++)
         {
-            if (world[(i * pacWar_WORLD_X_SIZE) + j] == pacWar_WORLD_PLAYER)
+            if (world[(i * tamanhoEixoX) + j] == mapaPac)
             {
-                *x = j * pacWar_BLOCK_SIZE;
-                *y = i * pacWar_BLOCK_SIZE;
+                *x = j * tamanhoBloco;
+                *y = i * tamanhoBloco;
                 return 0;
             }
         }
@@ -383,23 +382,21 @@ int localizaPac(char *world, int *x, int *y)
     return -1; /* nao encontrado */
 }
 
-
 /** localizando os fantasmas **/
-
 int localizaFantasmas(char *world, int *x, int *y, int n)
 {
     int i, j, count;
     count = 0;
-    for (i = 0; i < pacWar_WORLD_Y_SIZE; i++)
+    for (i = 0; i < tamanhoEixoY; i++)
     {
-        for (j = 0; j < pacWar_WORLD_X_SIZE; j++)
+        for (j = 0; j < tamanhoEixoX; j++)
         {
-            if (world[(i * pacWar_WORLD_X_SIZE) + j] == pacWar_WORLD_ENEMY)
+            if (world[(i * tamanhoEixoX) + j] == mapaFantasmas)
             {
                 if (count == n)
                 {
-                    *x = j * pacWar_BLOCK_SIZE;
-                    *y = i * pacWar_BLOCK_SIZE;
+                    *x = j * tamanhoBloco;
+                    *y = i * tamanhoBloco;
                     return 0;
                 }
                 count++;
@@ -410,42 +407,39 @@ int localizaFantasmas(char *world, int *x, int *y, int n)
 }
 
 /** Inicializa o pacman **/
-
-void pacWar_init_character(pacWar_character_t *c, int x, int y)
+void iniciaPac(pacWarPersonagem *c, int x, int y)
 {
     /** iniciando coordenadas X e Y */
     c->x = x;
     c->y = y;
-    c->moving_direction = c->looking_direction = pacWar_DIRECTION_NONE;
-    c->speed = 0;
-    c->draw_count = 0;
-    c->killed = 0;
+    c->direcaoMovimento = c->direcaoApontada = direcaoNenhuma;
+    c->velocidade = 0;
+    c->contaImagem = 0;
+    c->morto = 0;
 }
 
-
-/** inicializando as bolinhas **/
-
-void pacWar_init_pellets(char *world, pacWar_pellet_t *p, int *total)
+/** inicializando as pastilhas **/
+void iniciaPastilhas(char *world, pacPastilhas *p, int *total)
 {
     int i, j, n;
     n = 0;
-    for (i = 2; i < pacWar_WORLD_Y_SIZE+2; i++)
+    for (i = 2; i < tamanhoEixoY+2; i++)
     {
-        for (j = 0; j < pacWar_WORLD_X_SIZE; j++)
+        for (j = 0; j < tamanhoEixoX; j++)
         {
-            if ((world[(i * pacWar_WORLD_X_SIZE) + j] == pacWar_WORLD_PELLET)||(world[(i * pacWar_WORLD_X_SIZE) + j] == pacWar_WORLD_BOOSTER)) /** controla as bolas **/
+            if ((world[(i * tamanhoEixoX) + j] == mapaPastilha)||(world[(i * tamanhoEixoX) + j] == mapaEnergia)) /** controla as bolas **/
             {
-                p[n].x = (j * pacWar_BLOCK_SIZE) + (pacWar_BLOCK_SIZE / 2);
-                p[n].y = (i * pacWar_BLOCK_SIZE) + (pacWar_BLOCK_SIZE / 2);
-                p[n].consumed = 0;
+                p[n].x = (j * tamanhoBloco) + (tamanhoBloco / 2);
+                p[n].y = (i * tamanhoBloco) + (tamanhoBloco / 2);
+                p[n].consumido = 0;
 
-                if (world[(i * pacWar_WORLD_X_SIZE) + j] == pacWar_WORLD_BOOSTER)
-                    p[n].boost_effect = 1;
+                if (world[(i * tamanhoEixoX) + j] == mapaEnergia)
+                    p[n].efeitoEnergia = 1;
                 else
-                    p[n].boost_effect = 0;
+                    p[n].efeitoEnergia = 0;
 
                 n++;
-                if (n >= pacWar_MAX_PELLET - 1)
+                if (n >= numeroMaxPastilhas - 1)
                     break;
             }
         }
@@ -462,20 +456,20 @@ void pacWar_init_pellets(char *world, pacWar_pellet_t *p, int *total)
 
     r.x = 0;
     r.y = 0;
-    r.w = pacWar_WORLD_X_SIZE * pacWar_BLOCK_SIZE;
-    r.h = pacWar_WORLD_Y_SIZE * pacWar_BLOCK_SIZE;
+    r.w = tamanhoEixoX * tamanhoBloco;
+    r.h = tamanhoEixoY * tamanhoBloco;
     SDL_FillRect(s, &r, 0x0);
 
-    r.w = pacWar_BLOCK_SIZE;
-    r.h = pacWar_BLOCK_SIZE;
-    for (i = 0; i < pacWar_WORLD_Y_SIZE; i++)
+    r.w = tamanhoBloco;
+    r.h = tamanhoBloco;
+    for (i = 0; i < tamanhoEixoY; i++)
     {
-        for (j = 0; j < pacWar_WORLD_X_SIZE; j++)
+        for (j = 0; j < tamanhoEixoX; j++)
         {
-            if (world[(i * pacWar_WORLD_X_SIZE) + j] == pacWar_WORLD_WALL)
+            if (world[(i * tamanhoEixoX) + j] == mapaParede)
             {
-                r.x = j * pacWar_BLOCK_SIZE;
-                r.y = i * pacWar_BLOCK_SIZE;
+                r.x = j * tamanhoBloco;
+                r.y = i * tamanhoBloco;
                 SDL_FillRect(s, &r, 0xffffff);
             }
         }
@@ -483,97 +477,94 @@ void pacWar_init_pellets(char *world, pacWar_pellet_t *p, int *total)
 }*/
 
 
-//pacWarDesenhoworld_bitmap(criando mapa do bitmap)
-
+/** criando mapa a partir do bitmap **/
 void desenhaMapa(SDL_Surface *s, SDL_Surface *ws)
 {
     SDL_BlitSurface(ws, NULL, s, NULL);
 }
 
-// pacWarDesenhoplayer(jogador de empate)
-
-void desenhaPac(pacWar_character_t *p,SDL_Surface *s, SDL_Surface *ps, int boosted)
+/** desenha o jogador **/
+void desenhaPac(pacWarPersonagem *p,SDL_Surface *s, SDL_Surface *ps, int boosted)
 {
     SDL_Rect src, dst;
     int direction;
 
-    src.w = src.h = dst.w = dst.h = pacWar_CHARACTER_SIZE;
+    src.w = src.h = dst.w = dst.h = tamanhoPac;
     dst.x = p->x;
     dst.y = p->y;
 
     if (boosted)
-        src.y = pacWar_CHARACTER_SIZE;
+        src.y = tamanhoPac;
     else
         src.y = 0;
 
     src.x = 0;
 
-    if (p->moving_direction == pacWar_DIRECTION_NONE)
-        direction = p->looking_direction;
+    if (p->direcaoMovimento == direcaoNenhuma)
+        direction = p->direcaoApontada;
     else
-        direction = p->moving_direction;
+        direction = p->direcaoMovimento;
 
     switch (direction) /** muda a animação do pac **/
     {
-        case pacWar_DIRECTION_UP:
+        case direcaoCima:
         break;
-        case pacWar_DIRECTION_DOWN:
-            src.x += (pacWar_CHARACTER_SIZE * 4);
-        break;
-
-        case pacWar_DIRECTION_LEFT:
-            src.x += (pacWar_CHARACTER_SIZE * 8);
+        case direcaoBaixo:
+            src.x += (tamanhoPac * 4);
         break;
 
-        case pacWar_DIRECTION_RIGHT:
-            src.x += (pacWar_CHARACTER_SIZE * 12);
+        case direcaoEsquerda:
+            src.x += (tamanhoPac * 8);
+        break;
+
+        case direcaoDireita:
+            src.x += (tamanhoPac * 12);
         break;
 
         default:
         break;
     }
 
-    if (p->draw_count < 4)
+    if (p->contaImagem < 4)
     {
-        src.x += (p->draw_count * pacWar_CHARACTER_SIZE);
-        p->draw_count++;
+        src.x += (p->contaImagem * tamanhoPac);
+        p->contaImagem++;
     }
     else
-        if (p->draw_count == 4)
+        if (p->contaImagem == 4)
         {
-            src.x += (pacWar_CHARACTER_SIZE * 3);
-            p->draw_count++;
+            src.x += (tamanhoPac * 3);
+            p->contaImagem++;
         }
         else
-            if (p->draw_count == 5)
+            if (p->contaImagem == 5)
             {
-                src.x += (pacWar_CHARACTER_SIZE * 2);
-                p->draw_count++;
+                src.x += (tamanhoPac * 2);
+                p->contaImagem++;
             }
             else
-                if (p->draw_count == 6)
+                if (p->contaImagem == 6)
                 {
-                    src.x += pacWar_CHARACTER_SIZE;
-                    p->draw_count++;
+                    src.x += tamanhoPac;
+                    p->contaImagem++;
                 }
                 else
-                    p->draw_count = 0;
+                    p->contaImagem = 0;
 
     SDL_BlitSurface(ps, &src, s, &dst); /**função que percorre a imagem e corta a partir do desejado **/
 }
 
-// pacWarDesenhoenemy( pac man estatico para atrair enemy)
-
-void desenhaFantasmas(pacWar_character_t *e, SDL_Surface *s, SDL_Surface *es, int texture, int boosted)
+/** desenha fantasmas **/
+void desenhaFantasmas(pacWarPersonagem *e, SDL_Surface *s, SDL_Surface *es, int texture, int boosted)
 {
     SDL_Rect src, dst;
 
-    src.w = src.h = dst.w = dst.h = pacWar_CHARACTER_SIZE;
+    src.w = src.h = dst.w = dst.h = tamanhoPac;
     dst.x = e->x;
     dst.y = e->y;
 
     if (boosted)
-        src.y = pacWar_CHARACTER_SIZE;
+        src.y = tamanhoPac;
     else
         src.y = 0;
 
@@ -585,49 +576,48 @@ void desenhaFantasmas(pacWar_character_t *e, SDL_Surface *s, SDL_Surface *es, in
                 /* NAda para adicionar */
         break;
         case 1:
-            src.x += (pacWar_CHARACTER_SIZE * 4);
+            src.x += (tamanhoPac * 4);
         break;
 
         case 2:
-            src.x += (pacWar_CHARACTER_SIZE * 8);
+            src.x += (tamanhoPac * 8);
         break;
 
         case 3:
-            src.x += (pacWar_CHARACTER_SIZE * 12);
+            src.x += (tamanhoPac * 12);
         break;
 
         default:
         break;
     }
 
-    src.x += (e->draw_count * pacWar_CHARACTER_SIZE);
-    e->draw_count++;
-    if (e->draw_count > 3)
-        e->draw_count = 0;
+    src.x += (e->contaImagem * tamanhoPac);
+    e->contaImagem++;
+    if (e->contaImagem > 3)
+        e->contaImagem = 0;
 
     SDL_BlitSurface(es, &src, s, &dst);
 }
 
 
-/** desenha as bolas **/
-
-void desenhaPastilhas(SDL_Surface *s, pacWar_pellet_t *p, int total)
+/** desenha as pastilhas **/
+void desenhaPastilhas(SDL_Surface *s, pacPastilhas *p, int total)
 {
     int i, size, color;
     SDL_Rect r;
 
     for (i = 0; i < total; i++)
     {
-        if (p[i].consumed)
+        if (p[i].consumido)
         continue;
-        if (p[i].boost_effect)
+        if (p[i].efeitoEnergia)
         {
-            size = pacWar_BOOSTER_SIZE;
+            size = tamanhoPastilhaEnergia;
             color = 0xffff00; /* Amarelo. */
         }
         else
         {
-            size = pacWar_PELLET_SIZE;
+            size = tamanhoPastilha;
             color = 0xffffff; /* Branco */
         }
         r.w = size;
@@ -640,146 +630,138 @@ void desenhaPastilhas(SDL_Surface *s, pacWar_pellet_t *p, int total)
 
 
 /** Colisao NO MAPA */
-
-int colisaoMapa(pacWar_character_t *c, char *world)
+int colisaoMapa(pacWarPersonagem *c, char *world)
 {
     int cx1, cx2, cy1, cy2;
 
     /* Encontre em todos os blocos do mapa em que o caracter esta localizado*/
-    if (c->x / pacWar_BLOCK_SIZE == (c->x + pacWar_CHARACTER_SIZE - 1) / pacWar_BLOCK_SIZE)
+    if (c->x / tamanhoBloco == (c->x + tamanhoPac - 1) / tamanhoBloco)
     {
         /* Permanente dentro do bloco na direcao X */
-        cx1 = c->x / pacWar_BLOCK_SIZE;
+        cx1 = c->x / tamanhoBloco;
         cx2 = -1;
     }
     else
     {
         /* Entre dois blocos na direcao X */
-        cx1 = c->x / pacWar_BLOCK_SIZE;
+        cx1 = c->x / tamanhoBloco;
         cx2 = cx1 + 1;
     }
 
-    if (c->y / pacWar_BLOCK_SIZE == (c->y + pacWar_CHARACTER_SIZE - 1) / pacWar_BLOCK_SIZE)
+    if (c->y / tamanhoBloco == (c->y + tamanhoPac - 1) / tamanhoBloco)
     {
         /* Permanente dentro do bloco na direção Y. */
-        cy1 = c->y / pacWar_BLOCK_SIZE;
+        cy1 = c->y / tamanhoBloco;
         cy2 = -1;
     }
     else
     {
         /* Entre dois blocos na direção Y. */
-        cy1 = c->y / pacWar_BLOCK_SIZE;
+        cy1 = c->y / tamanhoBloco;
         cy2 = cy1 + 1;
     }
 
 
     /* Verifique todas as bordas de colisão em potencial. (A menos que os índices estejam fora dos limites.) */
 
-    if ((cy1 >= 0 && cy1 < pacWar_WORLD_Y_SIZE) &&(cx1 >= 0 && cx1 < pacWar_WORLD_X_SIZE))
+    if ((cy1 >= 0 && cy1 < tamanhoEixoY) &&(cx1 >= 0 && cx1 < tamanhoEixoX))
     {
-        if (world[(cy1 * pacWar_WORLD_X_SIZE) + cx1] == pacWar_WORLD_WALL)
+        if (world[(cy1 * tamanhoEixoX) + cx1] == mapaParede)
             return 1;
     }
 
-    if ((cy2 >= 0 && cy2 < pacWar_WORLD_Y_SIZE) && (cx1 >= 0 && cx1 < pacWar_WORLD_X_SIZE))
+    if ((cy2 >= 0 && cy2 < tamanhoEixoY) && (cx1 >= 0 && cx1 < tamanhoEixoX))
     {
-        if (world[(cy2 * pacWar_WORLD_X_SIZE) + cx1] == pacWar_WORLD_WALL)
+        if (world[(cy2 * tamanhoEixoX) + cx1] == mapaParede)
             return 1;
     }
 
-    if ((cy1 >= 0 && cy1 < pacWar_WORLD_Y_SIZE) && (cx2 >= 0 && cx2 < pacWar_WORLD_X_SIZE))
+    if ((cy1 >= 0 && cy1 < tamanhoEixoY) && (cx2 >= 0 && cx2 < tamanhoEixoX))
     {
-        if (world[(cy1 * pacWar_WORLD_X_SIZE) + cx2] == pacWar_WORLD_WALL)
+        if (world[(cy1 * tamanhoEixoX) + cx2] == mapaParede)
             return 1;
     }
 
-    if ((cy2 >= 0 && cy2 < pacWar_WORLD_Y_SIZE) &&(cx2 >= 0 && cx2 < pacWar_WORLD_X_SIZE))
+    if ((cy2 >= 0 && cy2 < tamanhoEixoY) &&(cx2 >= 0 && cx2 < tamanhoEixoX))
     {
-        if (world[(cy2 * pacWar_WORLD_X_SIZE) + cx2] == pacWar_WORLD_WALL)
+        if (world[(cy2 * tamanhoEixoX) + cx2] == mapaParede)
             return 1;
     }
-
 
     /* Manuseie o envolvimento se o caractere estiver completamente fora da área da tela. */
 
-    if (c->y > (pacWar_WORLD_Y_SIZE * pacWar_BLOCK_SIZE) - 1)
-        c->y = 0 - pacWar_CHARACTER_SIZE + 1;
+    if (c->y > (tamanhoEixoY * tamanhoBloco) - 1)
+        c->y = 0 - tamanhoPac + 1;
 
-    if (c->x > (pacWar_WORLD_X_SIZE * pacWar_BLOCK_SIZE) - 1)
-        c->x = 0 - pacWar_CHARACTER_SIZE + 1;
+    if (c->x > (tamanhoEixoX * tamanhoBloco) - 1)
+        c->x = 0 - tamanhoPac + 1;
 
-    if (c->y < 0 - pacWar_CHARACTER_SIZE + 1)
-        c->y = (pacWar_WORLD_Y_SIZE * pacWar_BLOCK_SIZE) - 1;
+    if (c->y < 0 - tamanhoPac + 1)
+        c->y = (tamanhoEixoY * tamanhoBloco) - 1;
 
-    if (c->x < 0 - pacWar_CHARACTER_SIZE + 1)
-        c->x = (pacWar_WORLD_X_SIZE * pacWar_BLOCK_SIZE) - 1;
-
+    if (c->x < 0 - tamanhoPac + 1)
+        c->x = (tamanhoEixoX * tamanhoBloco) - 1;
 
     return 0; /* Nao ha colisao */
 }
 
-
-/** colisao de personagem **/
-
-int pacWar_character_collision(pacWar_character_t *c1,pacWar_character_t *c2)
+/** colisão do Pac **/
+int colisaoPac(pacWarPersonagem *c1,pacWarPersonagem *c2)
 {
-    if (c1->y >= c2->y - pacWar_CHARACTER_SIZE && c1->y <= c2->y + pacWar_CHARACTER_SIZE)
-        if (c1->x >= c2->x - pacWar_CHARACTER_SIZE && c1->x <= c2->x + pacWar_CHARACTER_SIZE)
+    if (c1->y >= c2->y - tamanhoPac && c1->y <= c2->y + tamanhoPac)
+        if (c1->x >= c2->x - tamanhoPac && c1->x <= c2->x + tamanhoPac)
             return 1;
     return 0; /* Nao ha colisao */
 }
 
-
-// pacWar_pellets_consumed (bolas consumidas )
-
-int pastilhasConsumidas(pacWar_pellet_t *p, int total)
+/** pastilhas consumidas **/
+int pastilhasConsumidas(pacPastilhas *p, int total)
 {
-    int i, consumed;
+    int i, consumido;
 
-    consumed = 0;
+    consumido = 0;
     for (i = 0; i < total; i++)
-        if (p[i].consumed)
-            consumed++;
+        if (p[i].consumido)
+            consumido++;
 
-    return consumed;
+    return consumido;
 }
 
 
 
-// pacWar_pellet_collision(colisao das bolas)
-
-int comendoPastilhas(pacWar_character_t *c, pacWar_pellet_t *p,int total, int *all_pellets_consumed, int *boost_effect)
+/** colisao das pastilhas **/
+int comendoPastilhas(pacWarPersonagem *c, pacPastilhas *p,int total, int *todasPastilhasConsumidas, int *efeitoEnergia)
 {
-    int i, consumed, collision;
+    int i, consumido, collision;
 
-    *all_pellets_consumed = 0;
-    *boost_effect = 0;
+    *todasPastilhasConsumidas = 0;
+    *efeitoEnergia = 0;
 
     collision = 0;
-    consumed = 0;
+    consumido = 0;
     for (i = 0; i < total; i++)
     {
-        if (p[i].consumed)
+        if (p[i].consumido)
         {
-            consumed++;
+            consumido++;
             continue;
         }
 
-        if (c->y >= p[i].y - pacWar_CHARACTER_SIZE && c->y <= p[i].y)
+        if (c->y >= p[i].y - tamanhoPac && c->y <= p[i].y)
         {
-            if (c->x >= p[i].x - pacWar_CHARACTER_SIZE && c->x <= p[i].x)
+            if (c->x >= p[i].x - tamanhoPac && c->x <= p[i].x)
             {
-                p[i].consumed = 1;
-                if (p[i].boost_effect)
-                    *boost_effect = 1;
-                consumed++;
+                p[i].consumido = 1;
+                if (p[i].efeitoEnergia)
+                    *efeitoEnergia = 1;
+                consumido++;
                 collision = 1;
             }
         }
     }
 
-    if (consumed == total)
-        *all_pellets_consumed = 1;
+    if (consumido == total)
+        *todasPastilhasConsumidas = 1;
 
     if (collision)
         return 1;
@@ -788,57 +770,55 @@ int comendoPastilhas(pacWar_character_t *c, pacWar_pellet_t *p,int total, int *a
 }
 
 
-// pacWar_enemy_direction_player (direcao do jogador enemy)
-
-void pacWar_enemy_direction_player(pacWar_character_t *e,pacWar_character_t *p) /** direção dos fantasmas **/
+/** direcão dos Fantasmas **/
+void direcaoFantasmas(pacWarPersonagem *e,pacWarPersonagem *p) /** direção dos fantasmas **/
 {
     /* Direção da base na localização do jogador. */
-    if (e->y > p->y - pacWar_BLOCK_SIZE && e->y < p->y + pacWar_BLOCK_SIZE)
+    if (e->y > p->y - tamanhoBloco && e->y < p->y + tamanhoBloco)
     {
         if (e->x > p->x)
-            e->moving_direction = pacWar_DIRECTION_LEFT;
+            e->direcaoMovimento = direcaoEsquerda;
         else
-            e->moving_direction = pacWar_DIRECTION_RIGHT;
+            e->direcaoMovimento = direcaoDireita;
     }
     else
     {
         if (e->y > p->y)
-            e->moving_direction = pacWar_DIRECTION_UP;
+            e->direcaoMovimento = direcaoCima;
         else
-            e->moving_direction = pacWar_DIRECTION_DOWN;
+            e->direcaoMovimento = direcaoBaixo;
     }
 }
 
 
 
-/* Encontre a abertura onde a direção oposta é uma parede.*/
-
-int pacWar_enemy_direction_opening(pacWar_character_t *e, char *world) /** direção dos fantasmas **/
+/** direção dos fantasmas -- aberturas**/
+int direcaoFantasmasAbertura(pacWarPersonagem *e, char *world)
 {
     int x, y;
 
     /* Verifique se está dentro do bloco em ambas as direções. */
-    if (e->x / pacWar_BLOCK_SIZE == (e->x + pacWar_CHARACTER_SIZE - 1) / pacWar_BLOCK_SIZE)
+    if (e->x / tamanhoBloco == (e->x + tamanhoPac - 1) / tamanhoBloco)
     {
-        x = e->x / pacWar_BLOCK_SIZE;
-        if (e->y / pacWar_BLOCK_SIZE == (e->y + pacWar_CHARACTER_SIZE - 1) / pacWar_BLOCK_SIZE)
+        x = e->x / tamanhoBloco;
+        if (e->y / tamanhoBloco == (e->y + tamanhoPac - 1) / tamanhoBloco)
         {
-            y = e->y / pacWar_BLOCK_SIZE;
+            y = e->y / tamanhoBloco;
 
             /* Permitir somente se dentro dos limites menos 1. */
-            if (y < pacWar_WORLD_Y_SIZE - 1 && x < pacWar_WORLD_X_SIZE - 1)
+            if (y < tamanhoEixoY - 1 && x < tamanhoEixoX - 1)
             {
-                if (world[(y * pacWar_WORLD_X_SIZE) + x + 1] != pacWar_WORLD_WALL &&world[(y * pacWar_WORLD_X_SIZE) + x - 1] == pacWar_WORLD_WALL)
-                    return pacWar_DIRECTION_RIGHT;
+                if (world[(y * tamanhoEixoX) + x + 1] != mapaParede &&world[(y * tamanhoEixoX) + x - 1] == mapaParede)
+                    return direcaoDireita;
 
-                if (world[(y * pacWar_WORLD_X_SIZE) + x - 1] != pacWar_WORLD_WALL && world[(y * pacWar_WORLD_X_SIZE) + x + 1] == pacWar_WORLD_WALL)
-                    return pacWar_DIRECTION_LEFT;
+                if (world[(y * tamanhoEixoX) + x - 1] != mapaParede && world[(y * tamanhoEixoX) + x + 1] == mapaParede)
+                    return direcaoEsquerda;
 
-                if (world[((y + 1) * pacWar_WORLD_X_SIZE) + x] != pacWar_WORLD_WALL && world[((y - 1) * pacWar_WORLD_X_SIZE) + x] == pacWar_WORLD_WALL)
-                    return pacWar_DIRECTION_DOWN;
+                if (world[((y + 1) * tamanhoEixoX) + x] != mapaParede && world[((y - 1) * tamanhoEixoX) + x] == mapaParede)
+                    return direcaoBaixo;
 
-                if (world[((y - 1) * pacWar_WORLD_X_SIZE) + x] != pacWar_WORLD_WALL && world[((y + 1) * pacWar_WORLD_X_SIZE) + x] == pacWar_WORLD_WALL)
-                    return pacWar_DIRECTION_UP;
+                if (world[((y - 1) * tamanhoEixoX) + x] != mapaParede && world[((y + 1) * tamanhoEixoX) + x] == mapaParede)
+                    return direcaoCima;
             }
         }
     }
@@ -927,39 +907,46 @@ void desenhaNum(SDL_Surface *s, SDL_Surface *ns, int x, int y, int n)
 }
 
 
-void pacWar_load_highscore(int *table, char *filename)
+void leRecorde(int *v, char *arquivo)
 {
-  int i;
-  FILE *fh;
+    int i;
+    FILE *arq;
 
-  fh = fopen(filename, "r");
-  if (fh == NULL) {
-    fprintf(stderr, "Aviso: não é possível carregar o arquivo de recordes.\n");
-    /* Define todos os recordes para zero.*/
-    for (i = 0; i < pacWar_MAX_WORLD; i++) {
-      table[i] = 0;
+    arq = fopen(arquivo, "r");
+    if (arq == NULL)
+    {
+        fprintf(stderr, "Não foi carregar o arquivo de recordes.\n");
+        /* zera todos os recordes */
+        for (i = 0; i < maxPalavrasMapa; i++)
+        {
+            v[i] = 0;
+        }
     }
-  } else {
-    fread(table, sizeof(int), pacWar_MAX_WORLD, fh);
-    fclose(fh);
-  }
+    else
+    {
+        fread(v, sizeof(int), maxPalavrasMapa, arq);
+        fclose(arq);
+    }
 }
 
-void pacWar_save_highscore(int *table, char *filename)
+void salvaRecorde(int *v, char *arquivo)
 {
-  FILE *fh;
+    FILE *arq;
 
-  fh = fopen(filename, "w");
-  if (fh == NULL) {
-    fprintf(stderr, "Aviso: Não é possível salvar o arquivo de recordes.\n");
-  } else {
-    fwrite(table, sizeof(int), pacWar_MAX_WORLD, fh);
-    fclose(fh);
-  }
+    arq = fopen(arquivo, "w");
+    if (arq == NULL)
+    {
+        fprintf(stderr, "Erro ao salvar o arquivo de recordes.\n");
+    }
+    else
+    {
+        fwrite(v, sizeof(int), maxPalavrasMapa, arq);
+        fclose(arq);
+    }
 }
 
 /** função principal que controla o loop do jogo **/
-int pacWarGame(SDL_Surface *screen, char *world_layout_file, char *world_graphic_file, int enemy_speed, int *score)
+int pacWarGame(SDL_Surface *screen, char *world_layout_file, char *world_graphic_file, int enemy_velocidade, int *score)
 {
     int i, j, temp_x, temp_y, collision, direction, done_status;
     SDL_Event event;
@@ -970,51 +957,51 @@ int pacWarGame(SDL_Surface *screen, char *world_layout_file, char *world_graphic
     Mix_Chunk *comendo;
     Mix_Chunk *menu;
 
-    char world[(pacWar_WORLD_X_SIZE +20)* (pacWar_WORLD_Y_SIZE + 20)] = {pacWar_WORLD_AIR};
+    char world[(tamanhoEixoX +20)* (tamanhoEixoY + 20)] = {mapaEspaco};
 
-    pacWar_character_t player, enemy[pacWar_ENEMY_COUNT];
-    pacWar_pellet_t pellet[pacWar_MAX_PELLET];
+    pacWarPersonagem player, enemy[contaFantasmas];
+    pacPastilhas pellet[numeroMaxPastilhas];
 
-    int total_pellets, boost_effect, all_pellets_consumed, booster_time, comeCome = 0;
+    int total_pellets, efeitoEnergia, todasPastilhasConsumidas, booster_time, comeCome = 0;
 
     number_surface = SDL_DisplayFormat(SDL_LoadBMP("number.bmp"));
 
-    //comeCome = pacWar_pellet_collision(&player, pellet, total_pellets,&all_pellets_consumed, &boost_effect);
+    //comeCome = pacWar_pellet_collision(&player, pellet, total_pellets,&todasPastilhasConsumidas, &efeitoEnergia);
 
-    if (pacWarCarregaMapa(world_layout_file, world) != 0)
+    if (leMapa(world_layout_file, world) != 0)
     {
         fprintf(stderr, "Erro: Não foi possível carregar o arquivo de layout do mapa.\n");
-        return pacWarGame_FAIL;
+        return gameFalhou;
     }
 
     if (localizaPac(world, &temp_x, &temp_y) != 0)
     {
-        fprintf(stderr, "Erro: Não foi possível localizar o player no arquivo de layout do mapa.\n");
-        return pacWarGame_FAIL;
+        fprintf(stderr, "Não foi possível localizar o pacman no arquivo de layout do mapa.\n");
+        return gameFalhou;
     }
     else
     {
-        pacWar_init_character(&player, temp_x, temp_y);
+        iniciaPac(&player, temp_x, temp_y);
     }
 
-    for (i = 0; i < pacWar_ENEMY_COUNT; i++)
+    for (i = 0; i < contaFantasmas; i++)
     {
         if (localizaFantasmas(world, &temp_x, &temp_y, i) == 0)
-            pacWar_init_character(&enemy[i], temp_x, temp_y);
+            iniciaPac(&enemy[i], temp_x, temp_y);
             /* Comece com a direção de movimento aleatório. */
-        enemy[i].moving_direction = (rand() % 4) + 1;
+        enemy[i].direcaoMovimento = (rand() % 4) + 1;
     }
 
-    pacWar_init_pellets(world, pellet, &total_pellets);
+    iniciaPastilhas(world, pellet, &total_pellets);
     *score = 0;
-    boost_effect = all_pellets_consumed = booster_time = 0;
+    efeitoEnergia = todasPastilhasConsumidas = booster_time = 0;
 
     /* Carregar e converter arquivos gráficos. */
     temp_surface = SDL_LoadBMP("player.bmp"); /** carrega o pacman **/
     if (temp_surface == NULL)
     {
         fprintf(stderr, "Erro: Não é possível carregar gráficos do pacman: %s\n",SDL_GetError());
-        return pacWarGame_FAIL;
+        return gameFalhou;
     }
     else
     {
@@ -1022,7 +1009,7 @@ int pacWarGame(SDL_Surface *screen, char *world_layout_file, char *world_graphic
         if (player_surface == NULL)
         {
             fprintf(stderr, "Erro: Não é possível converter os gráficos do pacman: %s\n",SDL_GetError());
-            return pacWarGame_FAIL;
+            return gameFalhou;
         }
         SDL_FreeSurface(temp_surface);
     }
@@ -1032,7 +1019,7 @@ int pacWarGame(SDL_Surface *screen, char *world_layout_file, char *world_graphic
     {
         fprintf(stderr, "Erro: Não é possível carregar gráficos dos fantasmas: %s\n",SDL_GetError());
         SDL_FreeSurface(player_surface);
-        return pacWarGame_FAIL;
+        return gameFalhou;
     }
     else
     {
@@ -1041,7 +1028,7 @@ int pacWarGame(SDL_Surface *screen, char *world_layout_file, char *world_graphic
         {
             fprintf(stderr, "Erro: Não é possível converter gráficos dos fantasmas:%s\n",SDL_GetError());
             SDL_FreeSurface(player_surface);
-            return pacWarGame_FAIL;
+            return gameFalhou;
         }
         SDL_FreeSurface(temp_surface);
     }
@@ -1065,13 +1052,13 @@ int pacWarGame(SDL_Surface *screen, char *world_layout_file, char *world_graphic
     }
 
     /** Inicialize o som e musica. **/
-    if (iniSom(&music, &comendo, &menu) != 0)
+    if (iniciaSom(&music, &comendo, &menu) != 0)
     {
         SDL_FreeSurface(player_surface);
         SDL_FreeSurface(enemy_surface);
         if (world_surface != NULL)
             SDL_FreeSurface(world_surface);
-        return pacWarGame_FAIL;
+        return gameFalhou;
     }
     tocaMusica(music);
 
@@ -1087,7 +1074,7 @@ int pacWarGame(SDL_Surface *screen, char *world_layout_file, char *world_graphic
             switch(event.type)
             {
                 case SDL_QUIT: /** Sai da tela do jogo e retorna para a tela inicial **/
-                    done_status = pacWarGame_QUIT;
+                    done_status = gameFechar;
                 break;
 
                 case SDL_KEYDOWN: /** pega evento de pressão de botão **/
@@ -1095,7 +1082,7 @@ int pacWarGame(SDL_Surface *screen, char *world_layout_file, char *world_graphic
                     {
                         case SDLK_q:
                             /** Vai para o menu em vez de sair . **/
-                            done_status = pacWarGame_OK;
+                            done_status = gameOK;
                         break;
 
                         case SDLK_ESCAPE: /** Sai do jogo **/
@@ -1123,22 +1110,22 @@ int pacWarGame(SDL_Surface *screen, char *world_layout_file, char *world_graphic
 
                         case SDLK_w:
                         case SDLK_UP:
-                            player.moving_direction = pacWar_DIRECTION_UP;
+                            player.direcaoMovimento = direcaoCima;
                         break;
 
                         case SDLK_s:
                         case SDLK_DOWN:
-                            player.moving_direction = pacWar_DIRECTION_DOWN;
+                            player.direcaoMovimento = direcaoBaixo;
                         break;
 
                         case SDLK_a:
                         case SDLK_LEFT:
-                            player.moving_direction = pacWar_DIRECTION_LEFT;
+                            player.direcaoMovimento = direcaoEsquerda;
                         break;
 
                         case SDLK_d:
                         case SDLK_RIGHT:
-                            player.moving_direction = pacWar_DIRECTION_RIGHT;
+                            player.direcaoMovimento = direcaoDireita;
                         break;
 
                         default:
@@ -1151,41 +1138,41 @@ int pacWarGame(SDL_Surface *screen, char *world_layout_file, char *world_graphic
                     {
                         case SDLK_w:
                         case SDLK_UP:
-                            if (player.moving_direction == pacWar_DIRECTION_UP)
+                            if (player.direcaoMovimento == direcaoCima)
                             {
-                                player.moving_direction = pacWar_DIRECTION_NONE;
-                                player.looking_direction = pacWar_DIRECTION_UP;
-                                player.speed = 0;
+                                player.direcaoMovimento = direcaoNenhuma;
+                                player.direcaoApontada = direcaoCima;
+                                player.velocidade = 0;
                             }
                         break;
 
                         case SDLK_s:
                         case SDLK_DOWN:
-                            if (player.moving_direction == pacWar_DIRECTION_DOWN)
+                            if (player.direcaoMovimento == direcaoBaixo)
                             {
-                                player.moving_direction = pacWar_DIRECTION_NONE;
-                                player.looking_direction = pacWar_DIRECTION_DOWN;
-                                player.speed = 0;
+                                player.direcaoMovimento = direcaoNenhuma;
+                                player.direcaoApontada = direcaoBaixo;
+                                player.velocidade = 0;
                             }
                         break;
 
                         case SDLK_a:
                         case SDLK_LEFT:
-                            if (player.moving_direction == pacWar_DIRECTION_LEFT)
+                            if (player.direcaoMovimento == direcaoEsquerda)
                             {
-                                player.moving_direction = pacWar_DIRECTION_NONE;
-                                player.looking_direction = pacWar_DIRECTION_LEFT;
-                                player.speed = 0;
+                                player.direcaoMovimento = direcaoNenhuma;
+                                player.direcaoApontada = direcaoEsquerda;
+                                player.velocidade = 0;
                             }
                         break;
 
                         case SDLK_d:
                         case SDLK_RIGHT:
-                            if (player.moving_direction == pacWar_DIRECTION_RIGHT)
+                            if (player.direcaoMovimento == direcaoDireita)
                             {
-                                player.moving_direction = pacWar_DIRECTION_NONE;
-                                player.looking_direction = pacWar_DIRECTION_RIGHT;
-                                player.speed = 0;
+                                player.direcaoMovimento = direcaoNenhuma;
+                                player.direcaoApontada = direcaoDireita;
+                                player.velocidade = 0;
                             }
                         break;
 
@@ -1200,41 +1187,41 @@ int pacWarGame(SDL_Surface *screen, char *world_layout_file, char *world_graphic
 
 
         /* Mova o jogador e verifique se há colisões no mapa */
-        switch (player.moving_direction)
+        switch (player.direcaoMovimento)
         {
-            case pacWar_DIRECTION_UP:
-                player.speed++;
-                if (player.speed > pacWar_MAX_PLAYER_SPEED)
-                    player.speed--;
-                player.y -= player.speed;
+            case direcaoCima:
+                player.velocidade++;
+                if (player.velocidade > velocidadeMaxJogador)
+                    player.velocidade--;
+                player.y -= player.velocidade;
                 /* Continue se movendo de volta passo a passo, até a borda da parede. */
                 while (colisaoMapa(&player, world) != 0)
                     player.y++;
             break;
 
-            case pacWar_DIRECTION_DOWN:
-                player.speed++;
-                if (player.speed > pacWar_MAX_PLAYER_SPEED)
-                    player.speed--;
-                player.y += player.speed;
+            case direcaoBaixo:
+                player.velocidade++;
+                if (player.velocidade > velocidadeMaxJogador)
+                    player.velocidade--;
+                player.y += player.velocidade;
                 while (colisaoMapa(&player, world) != 0)
                     player.y--;
             break;
 
-            case pacWar_DIRECTION_LEFT:
-                player.speed++;
-                if (player.speed > pacWar_MAX_PLAYER_SPEED)
-                    player.speed--;
-                player.x -= player.speed;
+            case direcaoEsquerda:
+                player.velocidade++;
+                if (player.velocidade > velocidadeMaxJogador)
+                    player.velocidade--;
+                player.x -= player.velocidade;
                 while (colisaoMapa(&player, world) != 0)
                     player.x++;
             break;
 
-            case pacWar_DIRECTION_RIGHT:
-                player.speed++;
-                if (player.speed > pacWar_MAX_PLAYER_SPEED)
-                    player.speed--;
-                player.x += player.speed;
+            case direcaoDireita:
+                player.velocidade++;
+                if (player.velocidade > velocidadeMaxJogador)
+                    player.velocidade--;
+                player.x += player.velocidade;
                 while (colisaoMapa(&player, world) != 0)
                     player.x--;
             break;
@@ -1245,40 +1232,40 @@ int pacWarGame(SDL_Surface *screen, char *world_layout_file, char *world_graphic
 
 
         /* Mova os enemys e verifique suas colisões no mapa. */
-        for (i = 0; i < pacWar_ENEMY_COUNT; i++)
+        for (i = 0; i < contaFantasmas; i++)
         {
-            if (enemy[i].killed)
+            if (enemy[i].morto)
                 continue;
 
             /* Tente passar por uma abertura. */
-            if ((direction = pacWar_enemy_direction_opening(&enemy[i], world)) != 0)
+            if ((direction = direcaoFantasmasAbertura(&enemy[i], world)) != 0)
             {
                 if (rand() % 3 == 0)
-                    enemy[i].moving_direction = direction;
+                    enemy[i].direcaoMovimento = direction;
             }
 
             collision = 0;
 
-            switch (enemy[i].moving_direction)
+            switch (enemy[i].direcaoMovimento)
             {
-                case pacWar_DIRECTION_UP:
-                    enemy[i].speed++;
-                    if (enemy[i].speed > enemy_speed)
-                        enemy[i].speed--;
-                    enemy[i].y -= enemy[i].speed;
+                case direcaoCima:
+                    enemy[i].velocidade++;
+                    if (enemy[i].velocidade > enemy_velocidade)
+                        enemy[i].velocidade--;
+                    enemy[i].y -= enemy[i].velocidade;
                     while (colisaoMapa(&enemy[i], world) != 0)
                     {
                         enemy[i].y++;
                         collision = 1;
                     }
                     /*Volte se colidir com outro enemy. */
-                    for (j = 0; j < pacWar_ENEMY_COUNT; j++)
+                    for (j = 0; j < contaFantasmas; j++)
                     {
-                        if (enemy[j].killed)
+                        if (enemy[j].morto)
                             continue;
                         if (j != i)
                         {
-                            while (pacWar_character_collision(&enemy[i], &enemy[j]))
+                            while (colisaoPac(&enemy[i], &enemy[j]))
                             {
                                 enemy[i].y++;
                                 collision = 1;
@@ -1287,23 +1274,23 @@ int pacWarGame(SDL_Surface *screen, char *world_layout_file, char *world_graphic
                     }
                 break;
 
-                case pacWar_DIRECTION_DOWN:
-                    enemy[i].speed++;
-                    if (enemy[i].speed > enemy_speed)
-                        enemy[i].speed--;
-                    enemy[i].y += enemy[i].speed;
+                case direcaoBaixo:
+                    enemy[i].velocidade++;
+                    if (enemy[i].velocidade > enemy_velocidade)
+                        enemy[i].velocidade--;
+                    enemy[i].y += enemy[i].velocidade;
                     while (colisaoMapa(&enemy[i], world) != 0)
                     {
                         enemy[i].y--;
                         collision = 1;
                     }
-                    for (j = 0; j < pacWar_ENEMY_COUNT; j++)
+                    for (j = 0; j < contaFantasmas; j++)
                     {
-                        if (enemy[j].killed)
+                        if (enemy[j].morto)
                             continue;
                         if (j != i)
                         {
-                            while (pacWar_character_collision(&enemy[i], &enemy[j]))
+                            while (colisaoPac(&enemy[i], &enemy[j]))
                             {
                                 enemy[i].y--;
                                 collision = 1;
@@ -1312,23 +1299,23 @@ int pacWarGame(SDL_Surface *screen, char *world_layout_file, char *world_graphic
                     }
                 break;
 
-                case pacWar_DIRECTION_LEFT:
-                    enemy[i].speed++;
-                    if (enemy[i].speed > enemy_speed)
-                        enemy[i].speed--;
-                    enemy[i].x -= enemy[i].speed;
+                case direcaoEsquerda:
+                    enemy[i].velocidade++;
+                    if (enemy[i].velocidade > enemy_velocidade)
+                        enemy[i].velocidade--;
+                    enemy[i].x -= enemy[i].velocidade;
                     while (colisaoMapa(&enemy[i], world) != 0)
                     {
                         enemy[i].x++;
                         collision = 1;
                     }
-                    for (j = 0; j < pacWar_ENEMY_COUNT; j++)
+                    for (j = 0; j < contaFantasmas; j++)
                     {
-                        if (enemy[j].killed)
+                        if (enemy[j].morto)
                             continue;
                         if (j != i)
                         {
-                            while (pacWar_character_collision(&enemy[i], &enemy[j]))
+                            while (colisaoPac(&enemy[i], &enemy[j]))
                             {
                                 enemy[i].x++;
                                 collision = 1;
@@ -1337,23 +1324,23 @@ int pacWarGame(SDL_Surface *screen, char *world_layout_file, char *world_graphic
                     }
                 break;
 
-                case pacWar_DIRECTION_RIGHT:
-                    enemy[i].speed++;
-                    if (enemy[i].speed > enemy_speed)
-                            enemy[i].speed--;
-                    enemy[i].x += enemy[i].speed;
+                case direcaoDireita:
+                    enemy[i].velocidade++;
+                    if (enemy[i].velocidade > enemy_velocidade)
+                            enemy[i].velocidade--;
+                    enemy[i].x += enemy[i].velocidade;
                     while (colisaoMapa(&enemy[i], world) != 0)
                     {
                         enemy[i].x--;
                         collision = 1;
                     }
-                    for (j = 0; j < pacWar_ENEMY_COUNT; j++)
+                    for (j = 0; j < contaFantasmas; j++)
                     {
-                        if (enemy[j].killed)
+                        if (enemy[j].morto)
                         continue;
                         if (j != i)
                         {
-                            while (pacWar_character_collision(&enemy[i], &enemy[j]))
+                            while (colisaoPac(&enemy[i], &enemy[j]))
                             {
                                 enemy[i].x--;
                                 collision = 1;
@@ -1370,51 +1357,51 @@ int pacWarGame(SDL_Surface *screen, char *world_layout_file, char *world_graphic
             if (collision)
             {
                 if (rand() % 3 == 0)
-                    enemy[i].moving_direction = (rand() % 4) + 1;
+                    enemy[i].direcaoMovimento = (rand() % 4) + 1;
                 else
                 {
                     if (booster_time == 0) /* Apenas passe para o jogador se não estiver bugado. */
-                        pacWar_enemy_direction_player(&enemy[i], &player);
+                        direcaoFantasmas(&enemy[i], &player);
                 }
             }
         }
 
 
         /** Verifique as colisões entre o jogador e os enemys. **/
-        for (i = 0; i < pacWar_ENEMY_COUNT; i++)
+        for (i = 0; i < contaFantasmas; i++)
         {
-            if (enemy[i].killed)
+            if (enemy[i].morto)
                 continue;
-            if (pacWar_character_collision(&player, &enemy[i]))
+            if (colisaoPac(&player, &enemy[i]))
             {
                 if (booster_time > 0)
                 {
-                    enemy[i].killed = 1;
+                    enemy[i].morto = 1;
                     tocaSons(comendo);
-                    *score += pacWar_SCORE_ENEMY;
+                    *score += pontoFantasma;
                 }
                 else
                 {
                     fprintf(stderr, "Morto pelos fantasmas.\n");
-                    done_status = pacWarGame_OK;
+                    done_status = gameOK;
                 }
             }
         }
 
 
         /** Verificando consumo -- saia se a última pastilha tiver sido consumida */
-        if (comendoPastilhas(&player, pellet, total_pellets,&all_pellets_consumed, &boost_effect) == 1)
+        if (comendoPastilhas(&player, pellet, total_pellets,&todasPastilhasConsumidas, &efeitoEnergia) == 1)
         {
             tocaSons(comendo);
             comeCome++;
-            if (all_pellets_consumed)
+            if (todasPastilhasConsumidas)
             {
                 fprintf(stderr, "Todas a bolas comidas.\n");
                 *score += 100; /* Pontuação extra para consumir todos.. */
-                done_status = pacWarGame_OK;
+                done_status = gameOK;
             }
-            if (boost_effect)
-                booster_time = pacWar_BOOSTER_TIME;
+            if (efeitoEnergia)
+                booster_time = tempoEnergia;
         }
         if (booster_time > 0)
             booster_time--;
@@ -1432,15 +1419,15 @@ int pacWarGame(SDL_Surface *screen, char *world_layout_file, char *world_graphic
         desenhaPac(&player, screen, player_surface, booster_time);
 
 
-        for (i = 0; i < pacWar_ENEMY_COUNT; i++)
+        for (i = 0; i < contaFantasmas; i++)
         {
-            if (enemy[i].killed)
+            if (enemy[i].morto)
                 continue;
             desenhaFantasmas(&enemy[i], screen, enemy_surface, i, booster_time);
         }
 
         SDL_Flip(screen);
-        SDL_Delay(pacWar_GAME_SPEED);
+        SDL_Delay(gameVelocidade);
     }
 
 
@@ -1456,12 +1443,12 @@ int pacWarGame(SDL_Surface *screen, char *world_layout_file, char *world_graphic
     Mix_FreeChunk(menu);
 
     /* Atualizar pontuação. */
-    *score += pastilhasConsumidas(pellet, total_pellets) *pacWar_SCORE_PELLET;
-    *score *= enemy_speed;
+    *score += pastilhasConsumidas(pellet, total_pellets) *pontoPastilha;
+    *score *= enemy_velocidade;
     if (*score < 0)
         *score = 0;
 
-    if (done_status != pacWarGame_OK)
+    if (done_status != gameOK)
         *score = 0; /* Resetando pontuacao */
 
     return done_status;
