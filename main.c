@@ -100,6 +100,9 @@ int direcaoFantasmasAbertura(pacWarPersonagem *, char *); /** direção dos fantas
 void desenhaNum(SDL_Surface *, SDL_Surface *, int , int , int ); /** serve para escrever a velocidade dos fantasmas **/
 void leRecorde(int *, char *); /** le recorde em um arquivo **/
 void salvaRecorde(int *, char *); /**salva recorde em um arquivo **/
+void pausar(int );
+int chamaExtra(SDL_Surface *screen, Mix_Chunk *);
+
 
 
 int main(int argc, char *argv[])
@@ -113,12 +116,12 @@ int main(int argc, char *argv[])
      várias formas -, ou seja, é útil para criar um "tipo variável".**/
 
     SDL_Surface *screen, *areaMenu, *areaNum, *areaTemporaria, *areaCredito;
-    int fimJogo, jogoResultado, numMapa, fantasma_velocidade, jogoPontos;
+    int fimJogo, jogoResultado, numMapa, fantasma_velocidade, jogoPontos, teste;
     char arquivoLayout[tamanhoNomeArquivo];
     char arquivoGrafico[tamanhoNomeArquivo];
     int maxPontos[maxMapas];
-    Mix_Music *music;
-    Mix_Chunk *menu, *comendo, *pedaco;
+    Mix_Music *menu, *music;
+    Mix_Chunk *comendo, *pedaco;
 
     srand((unsigned)time(NULL));
 
@@ -183,9 +186,9 @@ int main(int argc, char *argv[])
     fantasma_velocidade = 1;
     numMapa = 1;
     iniciaSom(&music, &comendo, &menu, &pedaco);
-    tocaSons(menu, 0);
-    //SDL_Delay(5000);
-    tocaSons(pedaco, -1);
+    tocaSons(menu,0);
+    Mix_PlayChannel(-1,pedaco,-1);
+
 
     /** Menu **/
     fimJogo = 0;
@@ -228,14 +231,7 @@ int main(int argc, char *argv[])
 
 
                         case SDLK_w: /** seleciona mapa **/
-                            /*if(numMapa ==1)
-                                numMapa = 2;
-                            if (numMapa > maxMapas)
-                                numMapa = 1;*/
-                            areaTemporaria = SDL_LoadBMP("creditos.bmp");
-                            //areaCredito = SDL_DisplayFormat(areaTemporaria);
-                            SDL_BlitSurface(SDL_DisplayFormat(areaTemporaria), NULL, screen, NULL);
-
+                            teste = chamaExtra(screen,pedaco);
                         break;
 
                         case SDLK_s: /** seleciona mapa **/
@@ -254,7 +250,9 @@ int main(int argc, char *argv[])
             }
         }
         /** Desenhe gráficos **/
-        SDL_BlitSurface(areaMenu, NULL, screen, NULL);
+        desenhaMapa(screen,areaMenu);
+        //SDL_BlitSurface(areaMenu, NULL, screen, NULL);
+        //desenhaMapa(screen,areaNum);
         desenhaNum(screen, areaNum, 480, 278, fantasma_velocidade); /** serve para escrever a velocidade dos fantasmas **/
         desenhaNum(screen, areaNum, 480, 328,maxPontos[numMapa - 1]); /** serve para escrever a pontuação máxima **/
 
@@ -272,13 +270,14 @@ int main(int argc, char *argv[])
     return 0;
 }
 
-/*void pausar(int flag)
+void pausar(int n)
 {
-    if(flag == 0)
-        flag = 1;
-    else
-        flag =0;
-}*/
+    while(n!=0)
+    {
+        SDL_Delay(1000);
+        n--;
+    }
+}
 
 /** iniciando o som **/
 int iniciaSom(Mix_Music **music, Mix_Chunk **comendo, Mix_Chunk **menu, Mix_Chunk ** pedaco)
@@ -955,6 +954,86 @@ void salvaRecorde(int *v, char *arquivo)
         fclose(arq);
     }
 }
+
+int chamaExtra(SDL_Surface *screen, Mix_Chunk *pedaco)
+{
+    SDL_Event event;
+    SDL_Surface *areaCredito, *areaInstrucao, *areaHistoria;
+    int jogoExtra;
+
+    tocaSons(pedaco,-1);
+
+    areaInstrucao = SDL_LoadBMP("instrucao.bmp");
+    areaInstrucao = SDL_DisplayFormat(areaInstrucao);
+    areaHistoria = SDL_LoadBMP("historia.bmp");
+    areaHistoria = SDL_DisplayFormat(areaHistoria);
+    areaCredito = SDL_LoadBMP("credito.bmp");
+    areaCredito = SDL_DisplayFormat(areaCredito);
+
+
+    /** Loop de Extra **/
+    jogoExtra = 1;
+    while (jogoExtra == 1)
+    {
+        desenhaMapa(screen,areaInstrucao);
+        /** Pega a entrada do jogador, verifica os cliques e define as ações relativas **/
+        if (SDL_PollEvent(&event) == 1)
+        {
+            switch(event.type)
+            {
+                case SDL_QUIT: /** Sai da tela do jogo e retorna para a tela inicial **/
+                    jogoExtra = jogoFechar;
+                break;
+
+                case SDL_KEYDOWN: /** pega evento de pressão de botão **/
+                    switch (event.key.keysym.sym)
+                    {
+                        case SDLK_q:
+                            /** Vai para o menu em vez de sair . **/
+                            jogoExtra = jogoOk;
+                        break;
+
+                        case SDLK_ESCAPE: /** Sai do jogo **/
+                            jogoExtra = -1; /** nenhuma tecla relativa ao valor, portanto sai **/
+                        break;
+
+                        case SDLK_a:
+                        case SDLK_LEFT:
+                            desenhaMapa(screen,areaCredito);
+                        break;
+
+                        case SDLK_d:
+                        case SDLK_RIGHT:
+                            desenhaMapa(screen,areaHistoria);
+                        break;
+
+                        default:
+                            desenhaMapa(screen,areaInstrucao);
+                        break;
+                    }
+                break;
+
+                default:
+                    continue;
+            }
+        }
+    }
+
+
+
+    /* Limpar. */
+    SDL_FreeSurface(areaInstrucao);
+    SDL_FreeSurface(areaHistoria);
+    SDL_FreeSurface(areaCredito);
+    Mix_CloseAudio();
+    Mix_FreeChunk(pedaco);
+
+    return jogoExtra;
+}
+
+
+
+
 
 /** função principal que controla o loop do jogo **/
 int pacWarGame(SDL_Surface *screen, char *mapaArquivoLayout, char *arquivoMapaGrafico, int fantasma_velocidade, int *pontos)
