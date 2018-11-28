@@ -18,7 +18,7 @@
 //tamanho do cenário
 #define tamanhoBloco 32
 #define tamanhoEixoX 20
-#define tamanhoEixoY 15
+#define tamanhoEixoY 17
 
 //funcionamento do jogo
 #define jogoOk 0
@@ -76,11 +76,12 @@ typedef struct pacWarPastilhas {
     int efeitoEnergia;
 } pacPastilhas;
 
+
 /** Protótipos **/
 int pacWarGame(SDL_Surface *, char *,char *, int , int *); /** função principal que controla o loop do jogo **/
-int iniciaSom(Mix_Music **, Mix_Chunk **, Mix_Chunk **); /** inicializa o som **/
+int iniciaSom(Mix_Music **, Mix_Chunk **, Mix_Chunk **, Mix_Chunk **); /** inicializa o som **/
 void tocaMusica(Mix_Music *); /** ativa musicas **/
-void tocaSons(Mix_Chunk *); /** ativando outros sons **/
+void tocaSons(Mix_Chunk *, int ); /** ativando outros sons **/
 int leMapa(char *, char *); /** lê o arquivo layout e verifica as configurações do layout em relação á ' ', '#', '*', '.' **/
 int localizaPac(char *, int *, int *); /** lê o arquivo layout e verifica onde está posicionado o pacman **/
 int localizaFantasmas(char *, int *, int *, int ); /** localizando os fantasmas **/
@@ -99,7 +100,7 @@ int direcaoFantasmasAbertura(pacWarPersonagem *, char *); /** direção dos fantas
 void desenhaNum(SDL_Surface *, SDL_Surface *, int , int , int ); /** serve para escrever a velocidade dos fantasmas **/
 void leRecorde(int *, char *); /** le recorde em um arquivo **/
 void salvaRecorde(int *, char *); /**salva recorde em um arquivo **/
-void pausar()
+
 
 int main(int argc, char *argv[])
 {
@@ -116,6 +117,8 @@ int main(int argc, char *argv[])
     char arquivoLayout[tamanhoNomeArquivo];
     char arquivoGrafico[tamanhoNomeArquivo];
     int maxPontos[maxMapas];
+    Mix_Music *music;
+    Mix_Chunk *menu, *comendo, *pedaco;
 
     srand((unsigned)time(NULL));
 
@@ -125,11 +128,11 @@ int main(int argc, char *argv[])
     /** Vídeo e inicialização de tela aqui, por causa do menu gráfico. **/
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) != 0)
     {
-        printf(stderr, "Não é possível inicializar o SDL: %s\n", SDL_GetError());
+        fprintf(stderr, "Não é possível inicializar o SDL: %s\n", SDL_GetError());
         return 1;
     }
-    screen = SDL_SetVideoMode(tamanhoEixoX * 40/*tamanhoBloco*/,
-                              tamanhoEixoY *40 /*tamanhoBloco*/, 24, /*SDL_DOUBLEBUF*/SDL_FULLSCREEN);
+    screen = SDL_SetVideoMode(tamanhoEixoX * 32/*largura da tela*/,
+                              tamanhoEixoY *40/*altura da tela*/, 24, SDL_DOUBLEBUF/*SDL_FULLSCREEN*/);
                               /** controla a janela aberta **/
 
     if (screen == NULL)
@@ -137,8 +140,6 @@ int main(int argc, char *argv[])
         fprintf(stderr, "Não é possível definir o modo de vídeo: %s\n", SDL_GetError());
         return 1;
     }
-    //SDL_WM_SetCaption("SDL-Man", "SDL-Man");
-
 
     /** Carregar e converter arquivos gráficos de menu. **/
     areaTemporaria = SDL_LoadBMP("menu.bmp");
@@ -150,7 +151,7 @@ int main(int argc, char *argv[])
     }
     else
     {
-        areaMenu = SDL_DisplayFormat(areaTemporaria);
+        areaMenu = SDL_DisplayFormat(areaTemporaria); /**serve para carregar imagem do menu na tela loop render..**/
         if (areaMenu == NULL)
         {
             fprintf(stderr, "Não é possível converter os gráficos do menu: %s\n", SDL_GetError());
@@ -159,7 +160,7 @@ int main(int argc, char *argv[])
         SDL_FreeSurface(areaTemporaria);
     }
 
-    areaTemporaria = SDL_LoadBMP("number.bmp");
+    areaTemporaria = SDL_LoadBMP("numero.bmp");
 
     if (areaTemporaria == NULL)
     {
@@ -178,20 +179,18 @@ int main(int argc, char *argv[])
         }
         SDL_FreeSurface(areaTemporaria);
     }
-
-
-
     /** Inicializando valores na tela de Menu **/
     fantasma_velocidade = 1;
     numMapa = 1;
-
+    iniciaSom(&music, &comendo, &menu, &pedaco);
+    tocaSons(menu, 0);
+    //SDL_Delay(5000);
+    tocaSons(pedaco, -1);
 
     /** Menu **/
     fimJogo = 0;
     while (! fimJogo)
     {
-
-
         /** processo para entrada **/
         if (SDL_PollEvent(&event) == 1) /** SDL_PollEvent ==> Aguarda a definição do usuário: 0 se event for NULL **/
         {
@@ -210,21 +209,21 @@ int main(int argc, char *argv[])
 
                         case SDLK_RETURN: /** tecla ENTER com mesmo efeito de ESPAÇO (abaixo) -- retorna 13 para event.key em SDL_Event **/
                         case SDLK_SPACE: /** tecla ESPAÇO para "rodar" o jogo -- retorna 32 para event.key em SDL_Event **/
-                            snprintf(arquivoLayout, tamanhoNomeArquivo, "world.layout",numMapa);
-                            snprintf(arquivoGrafico, tamanhoNomeArquivo, "world.bmp",numMapa);
+                            snprintf(arquivoLayout, tamanhoNomeArquivo, "world.layout",numMapa); /**carrega layout**/
+                            snprintf(arquivoGrafico, tamanhoNomeArquivo, "world.bmp",numMapa); /** carrega ymagem por cima do layout**/
 
                             jogoResultado = pacWarGame(screen, arquivoLayout, arquivoGrafico,fantasma_velocidade, &jogoPontos);
 
-                            if (jogoResultado == jogoOk)
+                            /*if (jogoResultado == jogoOk)  /** se jogo == flag 0 passa pra proxima
                             {
-                                /* Atualizar pontuação*/
+                                /* Atualizar pontuação
                                 if (jogoPontos > maxPontos[numMapa - 1])
                                     maxPontos[numMapa - 1] = jogoPontos;
                             }
                             else
                             {
-                                fimJogo = 1; /* falhou . */
-                            }
+                                fimJogo = 1; /* falhou .
+                            }*/
                         break;
 
 
@@ -256,9 +255,9 @@ int main(int argc, char *argv[])
         }
         /** Desenhe gráficos **/
         SDL_BlitSurface(areaMenu, NULL, screen, NULL);
-        //pacWarDesenhomenu_number(screen, areaNum, 385, 163, numMapa);
         desenhaNum(screen, areaNum, 480, 278, fantasma_velocidade); /** serve para escrever a velocidade dos fantasmas **/
         desenhaNum(screen, areaNum, 480, 328,maxPontos[numMapa - 1]); /** serve para escrever a pontuação máxima **/
+
 
         SDL_Flip(screen);
         SDL_Delay(jogoVelocidade);
@@ -268,20 +267,21 @@ int main(int argc, char *argv[])
     SDL_FreeSurface(areaNum);
     SDL_FreeSurface(screen);
     salvaRecorde(maxPontos, arquivoRecorde);
+    Mix_FreeChunk(menu);
 
     return 0;
 }
 
-void pausar(int flag)
+/*void pausar(int flag)
 {
     if(flag == 0)
         flag = 1;
     else
         flag =0;
-}
+}*/
 
 /** iniciando o som **/
-int iniciaSom(Mix_Music **music, Mix_Chunk **comendo, Mix_Chunk **menu)
+int iniciaSom(Mix_Music **music, Mix_Chunk **comendo, Mix_Chunk **menu, Mix_Chunk ** pedaco)
 {
     if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 1024) < 0)
     {
@@ -311,24 +311,33 @@ int iniciaSom(Mix_Music **music, Mix_Chunk **comendo, Mix_Chunk **menu)
         //Mix_FreeMusic(*music);
         return -1;
     }
+    if (! (*pedaco = Mix_LoadWAV("menuWarsPedaco.wav")))
+    {
+        fprintf(stderr, "Não foi possível abrir o áudio: %s\n",SDL_GetError());
+        Mix_CloseAudio();
+        //Mix_FreeMusic(*music);
+        return -1;
+    }
     return 0;
 }
 
 /** ativando musica **/
 void tocaMusica(Mix_Music *m)
 {
-    if (Mix_PlayMusic(m, 0) == -1)
-        fprintf(stderr, "Não é possivel reproduzir o audio %s\n", SDL_GetError());
+    Mix_HaltChannel(-1);
+
+    if (Mix_PlayMusic(m, -1) == -1)
+        printf("Mix_PlayMusic: %s\n", Mix_GetError());
 }
 
 
 /** ativa os audios **/
-void tocaSons(Mix_Chunk *a)
+void tocaSons(Mix_Chunk *a, int loop)
 {
     /** pare todos os canais de audio **/
     Mix_HaltChannel(-1);
 
-    if (Mix_PlayChannel(-1, a, 0) == -1)
+    if (Mix_PlayChannel(-1, a, loop) == -1)
         fprintf(stderr, "Não é possível reproduzir o áudio %s\n", SDL_GetError());
 }
 
@@ -529,7 +538,7 @@ void desenhaPac(pacWarPersonagem *p,SDL_Surface *s, SDL_Surface *ps, int energiz
 }
 
 /** desenha fantasmas **/
-void desenhaFantasmas(pacWarPersonagem *e, SDL_Surface *s, SDL_Surface *es, int texture, int boosted)
+void desenhaFantasmas(pacWarPersonagem *e, SDL_Surface *s, SDL_Surface *es, int textura, int energizado)
 {
     SDL_Rect src, dst;
 
@@ -537,14 +546,14 @@ void desenhaFantasmas(pacWarPersonagem *e, SDL_Surface *s, SDL_Surface *es, int 
     dst.x = e->x;
     dst.y = e->y;
 
-    if (boosted)
+    if (energizado)
         src.y = tamanhoPac;
     else
         src.y = 0;
 
     src.x = 0;
 
-    switch (texture)
+    switch (textura)
     {
         case 0:
                 /* NAda para adicionar */
@@ -950,14 +959,14 @@ void salvaRecorde(int *v, char *arquivo)
 /** função principal que controla o loop do jogo **/
 int pacWarGame(SDL_Surface *screen, char *mapaArquivoLayout, char *arquivoMapaGrafico, int fantasma_velocidade, int *pontos)
 {
-    int i, j, temp_x, temp_y, colisao, direction, jogoStatus, vida = 3,aux_x, aux_y;
+    int i, j, temp_x, temp_y, colisao, direction, jogoStatus, vida = 3,aux_x, aux_y, flag = 1;
     SDL_Event event;
     SDL_Surface *areaPac, *areaFantasma, *areaMapa, *areaTemporaria, *areaNum, *areaNumVida;
 
     /** definindo variáveis de som **/
     Mix_Music *music;
-    Mix_Chunk *comendo;
-    Mix_Chunk *menu;
+    Mix_Chunk *comendo, *pedaco, *menu;
+
 
     char world[(tamanhoEixoX +20)* (tamanhoEixoY + 20)] = {mapaEspaco};
 
@@ -966,7 +975,7 @@ int pacWarGame(SDL_Surface *screen, char *mapaArquivoLayout, char *arquivoMapaGr
 
     int total_pastilhas, efeitoEnergia, todasPastilhasConsumidas, tempo_Energia, comeCome = 0;
 
-    areaNum = SDL_DisplayFormat(SDL_LoadBMP("number.bmp"));
+    areaNum = SDL_DisplayFormat(SDL_LoadBMP("numero.bmp"));
     areaNumVida = SDL_DisplayFormat(SDL_LoadBMP("numVida.bmp"));
 
     //comeCome = pacWar_pastilha_colisao(&personagemPac, pastilha, total_pastilhas,&todasPastilhasConsumidas, &efeitoEnergia);
@@ -1055,7 +1064,7 @@ int pacWarGame(SDL_Surface *screen, char *mapaArquivoLayout, char *arquivoMapaGr
     }
 
     /** Inicialize o som e musica. **/
-    if (iniciaSom(&music, &comendo, &menu) != 0)
+    if (iniciaSom(&music, &comendo, &menu, &pedaco) != 0)
     {
         SDL_FreeSurface(areaPac);
         SDL_FreeSurface(areaFantasma);
@@ -1068,7 +1077,6 @@ int pacWarGame(SDL_Surface *screen, char *mapaArquivoLayout, char *arquivoMapaGr
 
     /** Loop do jogo **/
     jogoStatus = 1;
-
     while (jogoStatus == 1)
     {
 
@@ -1388,13 +1396,12 @@ int pacWarGame(SDL_Surface *screen, char *mapaArquivoLayout, char *arquivoMapaGr
                 if (tempo_Energia > 0)
                 {
                     fantasma[i].morto = 1;
-                    tocaSons(comendo);
+                    tocaSons(comendo, 0);
                     *pontos += pontoFantasma;
                 }
                 else
                 {
                     fprintf(stderr, "Morto pelos fantasmas.\n");
-                    //jogoStatus = jogoOk;
                     iniciaPac(&personagemPac, aux_x, aux_y);
                     vida--;
 
@@ -1404,12 +1411,10 @@ int pacWarGame(SDL_Surface *screen, char *mapaArquivoLayout, char *arquivoMapaGr
             }
         }
 
-
-
         /** Verificando consumo -- saia se a última pastilha tiver sido consumida */
         if (comendoPastilhas(&personagemPac, pastilha, total_pastilhas,&todasPastilhasConsumidas, &efeitoEnergia) == 1)
         {
-            tocaSons(comendo);
+            tocaSons(comendo, 0);
             comeCome++;
             if (todasPastilhasConsumidas)
             {
@@ -1427,27 +1432,23 @@ int pacWarGame(SDL_Surface *screen, char *mapaArquivoLayout, char *arquivoMapaGr
         /** Desenha o mapa */
         if (areaMapa != NULL)
             desenhaMapa(screen, areaMapa);
-        //else
-            //pacWarDesenhoworld_basic(screen, world);
 
         desenhaPastilhas(screen, pastilha, total_pastilhas);
         desenhaNum(screen, areaNum, 190, 5, comeCome); /** serve para escrever a pontuação na tela do jogo**/
         desenhaVida(screen, areaNumVida, 480, 5, vida); /** serve para desenhar as vidas**/
 
 
-        if(flag == 1)
+        if(flag == 1){
             desenhaPac(&personagemPac, screen, areaPac, tempo_Energia);
-
-
             for (i = 0; i < contaFantasmas; i++)
             {
                 if (fantasma[i].morto)
                     continue;
                 desenhaFantasmas(&fantasma[i], screen, areaFantasma, i, tempo_Energia);
             }
-
             SDL_Flip(screen);
             SDL_Delay(jogoVelocidade);
+        }
     }
 
 
@@ -1461,7 +1462,6 @@ int pacWarGame(SDL_Surface *screen, char *mapaArquivoLayout, char *arquivoMapaGr
     Mix_CloseAudio();
     Mix_FreeMusic(music);
     Mix_FreeChunk(comendo);
-    Mix_FreeChunk(menu);
 
     /* Atualizar pontuação. */
     *pontos += pastilhasConsumidas(pastilha, total_pastilhas) *pontoPastilha;
