@@ -30,7 +30,15 @@
 		</Build>
 		<Compiler>
 			<Add option="-Wall" />
+			<Add directory="C:/Users/Wanderson/Documents/SDL-devel-1.2.15-mingw32/SDL-1.2.15/include" />
 		</Compiler>
+		<Linker>
+			<Add option="-lmingw32" />
+			<Add option="-lSDLmain" />
+			<Add option="-lSDL" />
+			<Add option="-lSDL_mixer" />
+			<Add directory="C:/Users/Wanderson/Documents/SDL-devel-1.2.15-mingw32/SDL-1.2.15/lib" />
+		</Linker>
 		<Unit filename="main.c">
 			<Option compilerVar="CC" />
 		</Unit>

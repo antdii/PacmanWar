@@ -137,7 +137,7 @@ int main(int argc, char *argv[])
                               tamanhoEixoY *40/*altura da tela*/, 24, SDL_DOUBLEBUF/*SDL_FULLSCREEN*/);
                               /** controla a janela aberta **/
 
-    if (tela == NULL)
+    if (tela == NULL) /*** se tela for vazia faça :***/
     {
         fprintf(stderr, "Não é possível definir o modo de vídeo: %s\n", SDL_GetError());
         return 1;
@@ -148,7 +148,7 @@ int main(int argc, char *argv[])
     /** Carregar e converter arquivos gráficos de menu. **/
     areaTemporaria = SDL_LoadBMP("menu.bmp");
 
-    if (areaTemporaria == NULL)
+    if (areaTemporaria == NULL) /*** areaTemporaroa for vazia***/
     {
         fprintf(stderr, "Não é possível carregar imagem do menu: %s\n",SDL_GetError());
         return 1;
@@ -164,7 +164,7 @@ int main(int argc, char *argv[])
         SDL_FreeSurface(areaTemporaria);
     }
 
-    areaTemporaria = SDL_LoadBMP("numero.bmp");
+    areaTemporaria = SDL_LoadBMP("numero.bmp"); /*** lendo os numeros.bmp***/
 
     if (areaTemporaria == NULL)
     {
@@ -271,7 +271,7 @@ int main(int argc, char *argv[])
             }
         }
         /** Desenhe gráficos **/
-        desenhaImagem(tela,areaMenu);
+        desenhaImagem(tela,areaMenu); /*** serve para escrever a imagem na tela***/
         desenhaNum(tela, areaNum, 480, 278, fantasma_velocidade); /** serve para escrever a velocidade dos fantasmas **/
         desenhaNum(tela, areaNum, 480, 328,maxPontos[numMapa - 1]); /** serve para escrever a pontuação máxima **/
         desenhaExtra(tela, areaTelaDisplay,0,0,tecla); /** serve para mostrar instruções, história e créditos **/
@@ -290,6 +290,8 @@ int main(int argc, char *argv[])
     return 0;
 }
 
+/***funcao para pausar o jogo ***/
+
 void pausar(int n)
 {
     while(n!=0)
@@ -300,6 +302,7 @@ void pausar(int n)
 }
 
 /** iniciando o som **/
+/*** comparacoes para testar e iniciar o som***/
 int iniciaSom(Mix_Music **music, Mix_Chunk **comendo, Mix_Chunk **menu, Mix_Chunk ** pedaco)
 {
     if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 1024) < 0)
@@ -367,6 +370,8 @@ int leMapa(char *arqLayout, char *world)
     int c, w, h;
     FILE *arq;
 
+    /***abre e Testa o arquivo e faz a leitura do arquivo do mapa ***/
+
     arq = fopen(arqLayout, "r");
     if (arq == NULL)
     {
@@ -375,7 +380,8 @@ int leMapa(char *arqLayout, char *world)
     }
 
     w = 0;
-    h = 2; // controle da posição da matriz
+    h = 2;
+    // controle da posição da matriz
     while ((c = fgetc(arq)) != EOF)
     {
         if (c == '\n' || w >= tamanhoEixoX)
@@ -393,6 +399,7 @@ int leMapa(char *arqLayout, char *world)
     }
 
     fclose(arq);
+    /*** fechando o arquivo***/
     return 0;
 }
 
@@ -456,9 +463,9 @@ void iniciaPastilhas(char *world, pacPastilhas *p, int *total)
 {
     int i, j, n;
     n = 0;
-    for (i = 2; i < tamanhoEixoY+2; i++)
+    for (i = 2; i < tamanhoEixoY+2; i++) /*** eixo Y ***/
     {
-        for (j = 0; j < tamanhoEixoX; j++)
+        for (j = 0; j < tamanhoEixoX; j++) /*** eixo X***/
         {
             if ((world[(i * tamanhoEixoX) + j] == mapaPastilha)||(world[(i * tamanhoEixoX) + j] == mapaEnergia)) /** controla as bolas **/
             {
@@ -762,7 +769,7 @@ int comendoPastilhas(pacWarPersonagem *c, pacPastilhas *p,int total, int *todasP
     }
 
     if (consumido == total)
-        *todasPastilhasConsumidas = 1;
+        *todasPastilhasConsumidas = 1;  /*** Total de pastilhas consumidas***/
 
     if (colisao)
         return 1;
@@ -808,16 +815,16 @@ int direcaoFantasmasAbertura(pacWarPersonagem *e, char *v)
             if (y < tamanhoEixoY - 1 && x < tamanhoEixoX - 1)
             {
                 if (v[(y * tamanhoEixoX) + x + 1] != mapaParede &&v[(y * tamanhoEixoX) + x - 1] == mapaParede)
-                    return direcaoDireita;
+                    return direcaoDireita; /*** direcao Direita ***/
 
                 if (v[(y * tamanhoEixoX) + x - 1] != mapaParede && v[(y * tamanhoEixoX) + x + 1] == mapaParede)
-                    return direcaoEsquerda;
+                    return direcaoEsquerda; /*** direcao Esquerda ***/
 
                 if (v[((y + 1) * tamanhoEixoX) + x] != mapaParede && v[((y - 1) * tamanhoEixoX) + x] == mapaParede)
-                    return direcaoBaixo;
+                    return direcaoBaixo; /*** direcao Baixo ***/
 
                 if (v[((y - 1) * tamanhoEixoX) + x] != mapaParede && v[((y + 1) * tamanhoEixoX) + x] == mapaParede)
-                    return direcaoCima;
+                    return direcaoCima; /*** direcao Cima***/
             }
         }
     }
@@ -1300,6 +1307,7 @@ int pacWarGame(SDL_Surface *tela, char *mapaArquivoLayout, char *arquivoMapaGraf
 
             switch (fantasma[i].direcaoMovimento)
             {
+                /*** direcao Cima***/
                 case direcaoCima:
                     fantasma[i].velocidade++;
                     if (fantasma[i].velocidade > fantasma_velocidade)
@@ -1326,6 +1334,7 @@ int pacWarGame(SDL_Surface *tela, char *mapaArquivoLayout, char *arquivoMapaGraf
                     }
                 break;
 
+                /*** direcao Baixo***/
                 case direcaoBaixo:
                     fantasma[i].velocidade++;
                     if (fantasma[i].velocidade > fantasma_velocidade)
@@ -1351,6 +1360,7 @@ int pacWarGame(SDL_Surface *tela, char *mapaArquivoLayout, char *arquivoMapaGraf
                     }
                 break;
 
+                /*** direcao Esquerda***/
                 case direcaoEsquerda:
                     fantasma[i].velocidade++;
                     if (fantasma[i].velocidade > fantasma_velocidade)
@@ -1376,6 +1386,7 @@ int pacWarGame(SDL_Surface *tela, char *mapaArquivoLayout, char *arquivoMapaGraf
                     }
                 break;
 
+                /*** direcao Direita***/
                 case direcaoDireita:
                     fantasma[i].velocidade++;
                     if (fantasma[i].velocidade > fantasma_velocidade)
